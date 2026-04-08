@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% block title %}New Scan — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">New Scan</h1>
+            <p class="page-header__subtitle">Configure target and scan profile</p>
+        </div>
+        <a href="/" class="btn btn--ghost" id="cancel-scan-btn">✕ Cancel</a>
+    </div>
+
+    <form id="new-scan-form" style="max-width: 560px; display:flex; flex-direction:column; gap: var(--sp-6);"
+        onsubmit="startScan(event)">
+        <!-- Target drop zone -->
+        <div class="field">
+            <label class="field__label">Target File</label>
+
+            <!-- Hidden real file input -->
+            <input type="file" id="file-input" name="file" accept=".apk,.ipa,.exe,.msi,.dmg,.deb,.rpm,.appimage"
+                style="display:none;" aria-label="Select target file" />
+
+            <!-- Drop zone -->
+            <div id="drop-zone" role="button" tabindex="0"
+                aria-label="Drop APK, IPA or other binary here, or click to browse" style="
+                    display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    gap:var(--sp-3); padding:var(--sp-6) var(--sp-4);
+                    background:var(--surface-raised); border:1.5px dashed var(--border);
+                    border-radius:var(--radius); cursor:pointer;
+                    transition:border-color var(--transition), background var(--transition);
+                    min-height:110px; text-align:center;
+                ">
+                <!-- Upload icon -->
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" id="drop-icon"
+                    style="color:var(--text-muted);">
+                    <path d="M12 16V8M12 8l-3 3M12 8l3 3" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M3 16v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" />
+                </svg>
+
+                <div>
+                    <div id="drop-label" style="font-size:13px;color:var(--text-primary);font-weight:500;">Drop file
+                        here or <span style="color:var(--accent);text-decoration:underline;">browse</span></div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">APK &middot; IPA &middot; EXE
+                        &middot; DMG &middot; DEB</div>
+                </div>
+
+                <!-- Chosen file name shown here -->
+                <div id="drop-file-info"
+                    style="display:none;font-family:var(--font-mono);font-size:12px;color:var(--accent);"></div>
+            </div>
+
+            <!-- Upload progress bar (hidden until upload starts) -->
+            <div id="upload-progress-wrap" style="display:none;margin-top:var(--sp-2);">
+                <div
+                    style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;">
+                    <span>Uploading…</span>
+                    <span id="upload-pct">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar__fill" id="upload-fill" style="width:0%;"></div>
+                </div>
+            </div>
+
+            <input type="hidden" name="target" id="target-value" value="" />
+            <input type="hidden" id="uploaded-filename" value="" />
+        </div>
+
+        <!-- Platform -->
+        <div class="field">
+            <label class="field__label" for="platform-select">Platform</label>
+            <select class="field__select" name="platform" id="platform-select">
+                <option value="android">Android</option>
+                <option value="ios">iOS</option>
+                <option value="web">Web</option>
+                <option value="desktop">Desktop</option>
+            </select>
+        </div>
+
+        <!-- Scan Profile -->
+        <div class="field">
+            <div class="field__label">Scan Profile</div>
+            <div class="radio-group" id="scan-profile-group" role="radiogroup" aria-label="Scan profile">
+
+                <label class="radio-option selected" id="profile-full-label">
+                    <input type="radio" name="profile" value="full" checked id="profile-full" />
+                    <div class="radio-option__dot" aria-hidden="true"></div>
+                    <div>
+                        <div class="radio-option__text">Full Scan</div>
+                        <div class="radio-option__desc">All tools, complete pipeline</div>
+                    </div>
+                </label>
+
+                <label class="radio-option" id="profile-quick-label">
+                    <input type="radio" name="profile" value="quick" id="profile-quick" />
+                    <div class="radio-option__dot" aria-hidden="true"></div>
+                    <div>
+                        <div class="radio-option__text">Quick Scan</div>
+                        <div class="radio-option__desc">Static only — no device needed</div>
+                    </div>
+                </label>
+
+                <label class="radio-option" id="profile-runtime-label">
+                    <input type="radio" name="profile" value="runtime" id="profile-runtime" />
+                    <div class="radio-option__dot" aria-hidden="true"></div>
+                    <div>
+                        <div class="radio-option__text">Runtime Only</div>
+                        <div class="radio-option__desc">Opens Frida Runtime Workspace — physical device required</div>
+                    </div>
+                </label>
+
+                <label class="radio-option" id="profile-custom-label">
+                    <input type="radio" name="profile" value="custom" id="profile-custom" />
+                    <div class="radio-option__dot" aria-hidden="true"></div>
+                    <div>
+                        <div class="radio-option__text">Custom</div>
+                        <div class="radio-option__desc">Select tools manually</div>
+                    </div>
+                </label>
+
+            </div>
+        </div>
+
+        <!-- Custom tools (collapsed unless Custom selected) -->
+        <div id="custom-tools-panel" style="display:none;">
+            <div class="card card--raised" style="display:flex; flex-direction:column; gap:var(--sp-3);">
+                <div class="field__label">Tool Selection</div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--sp-3);">
+                    {% for tool_id, tool_label in [
+                    ("apktool","APKTool"), ("jadx","JADX"), ("mobsf","MobSF"),
+                    ("frida","Frida"), ("mitmproxy","mitmproxy"), ("sbom","SBOM")
+                    ] %}
+                    <label
+                        style="display:flex;align-items:center;gap:var(--sp-2);cursor:pointer; font-size:13px; color:var(--text-muted);">
+                        <input type="checkbox" name="tools" value="{{ tool_id }}" id="tool-{{ tool_id }}" {% if tool_id
+                            not in ["sbom"] %}checked{% endif %} style="accent-color:var(--accent);" />
+                        {{ tool_label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Project name -->
+        <div class="field">
+            <label class="field__label" for="project-name-input">Project Name</label>
+            <input type="text" class="field__input" name="project_name" id="project-name-input"
+                placeholder="e.g. BankApp v2.3" autocomplete="off" required />
+        </div>
+
+        <!-- Submit -->
+        <div style="display:flex; justify-content:flex-end; padding-top:var(--sp-2);">
+            <button type="submit" class="btn btn--primary btn--lg" id="begin-scan-btn">
+                Begin Scan
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+
+        <div id="scan-response" style="font-size:13px;color:var(--critical);margin-top:var(--sp-2);"></div>
+    </form>
+</div>
+
+<script>
+    async function startScan(e) {
+        e.preventDefault();
+        const btn = document.getElementById('begin-scan-btn');
+        const errBox = document.getElementById('scan-response');
+        btn.disabled = true;
+        btn.textContent = 'Starting…';
+        errBox.textContent = '';
+
+        const platform = document.getElementById('platform-select').value;
+        const projectName = document.getElementById('project-name-input').value.trim();
+        const profile = document.querySelector('[name="profile"]:checked')?.value || 'full';
+        const targetValue = document.getElementById('target-value').value.trim();
+        const uploadedFile = document.getElementById('uploaded-filename');
+        const existingProjectId = uploadedFile?.dataset?.projectId || null;
+
+        try {
+            let projectId = existingProjectId;
+
+            // Step 1: Create project (only if not already created by the upload step)
+            if (!projectId) {
+                const projRes = await fetch('/api/scan/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: projectName || 'Unnamed Project',
+                        platform: platform,
+                        target_path: targetValue || null,
+                        description: `${platform} scan — ${profile} profile`,
+                    }),
+                });
+                if (!projRes.ok) {
+                    let errStr = 'Failed to create project';
+                    try {
+                        const err = await projRes.json();
+                        errStr = err.detail || errStr;
+                    } catch (e) { errStr = await projRes.text(); }
+                    throw new Error(errStr);
+                }
+                const project = await projRes.json();
+                projectId = project.id;
+            }
+
+            // Step 2: If runtime profile selected → go directly to Runtime Workspace (Frida)
+            if (profile === 'runtime') {
+                window.location.href = `/runtime?project=${projectId}`;
+                return;
+            }
+
+            // Step 2b: Start static/full scan for the platform
+            const customTools = Array.from(document.querySelectorAll('input[name="tools"]:checked')).map(el => el.value);
+            const scanRes = await fetch(`/api/scan/${platform}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    project_id: projectId,
+                    profile: profile,
+                    custom_tools: customTools,
+                }),
+            });
+            if (!scanRes.ok) {
+                let errStr = 'Failed to start scan';
+                try {
+                    const err = await scanRes.json();
+                    errStr = err.detail || errStr;
+                } catch (e) { errStr = await scanRes.text(); }
+                throw new Error(errStr);
+            }
+            const scan = await scanRes.json();
+
+            // Step 3: Redirect to live-scan view
+            window.location.href = `/live-scan?scan_id=${scan.id}&project_id=${projectId}`;
+
+        } catch (err) {
+            errBox.textContent = '✗ ' + err.message;
+            btn.disabled = false;
+            btn.innerHTML = 'Begin Scan <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>';
+        }
+    }
+
+    (function () {
+        // ── File drop / select ───────────────────────────────────────────────
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const dropLabel = document.getElementById('drop-label');
+        const dropFileInfo = document.getElementById('drop-file-info');
+        const targetValue = document.getElementById('target-value');
+        const uploadedFilename = document.getElementById('uploaded-filename');
+        const progressWrap = document.getElementById('upload-progress-wrap');
+        const uploadFill = document.getElementById('upload-fill');
+        const uploadPct = document.getElementById('upload-pct');
+        const platformSelect = document.getElementById('platform-select');
+        const nameInput = document.getElementById('project-name-input');
+
+        const ALLOWED_EXT = ['.apk', '.ipa', '.exe', '.msi', '.dmg', '.deb', '.rpm', '.appimage'];
+        const MAX_SIZE_MB = 500;
+
+        function detectPlatform(filename) {
+            const lower = filename.toLowerCase();
+            if (lower.endsWith('.apk')) return 'android';
+            if (lower.endsWith('.ipa')) return 'ios';
+            if (['.exe', '.msi', '.dmg', '.deb', '.rpm', '.appimage'].some(e => lower.endsWith(e))) return 'desktop';
+            return null;
+        }
+
+        function setDropZoneActive(active) {
+            dropZone.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+            dropZone.style.background = active ? 'rgba(var(--accent-rgb, 99,102,241),0.07)' : 'var(--surface-raised)';
+        }
+
+        function setDropZoneError(msg) {
+            dropLabel.innerHTML = `<span style="color:var(--critical);">✗ ${msg}</span>`;
+            dropFileInfo.style.display = 'none';
+            setDropZoneActive(false);
+        }
+
+        async function handleFile(file) {
+            // Validate extension
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_EXT.includes(ext)) {
+                setDropZoneError(`Unsupported file type: ${ext}`);
+                return;
+            }
+            // Validate size
+            if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                setDropZoneError(`File too large (max ${MAX_SIZE_MB} MB)`);
+                return;
+            }
+
+            // Show file name immediately
+            dropLabel.innerHTML = `<span style="color:var(--text-muted);">Selected:</span>`;
+            dropFileInfo.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+            dropFileInfo.style.display = 'block';
+            setDropZoneActive(true);
+
+            // Auto-detect platform
+            const detectedPlatform = detectPlatform(file.name);
+            if (detectedPlatform) platformSelect.value = detectedPlatform;
+
+            // Auto-fill project name if empty
+            if (!nameInput.value.trim()) {
+                nameInput.value = file.name.replace(/\.[^.]+$/, '');
+            }
+
+            // Upload file to server
+            progressWrap.style.display = 'block';
+            uploadFill.style.width = '0%';
+            uploadPct.textContent = '0%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Use XMLHttpRequest for progress tracking
+                await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/scan/upload');
+
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable) {
+                            const pct = Math.round((e.loaded / e.total) * 100);
+                            uploadFill.style.width = pct + '%';
+                            uploadPct.textContent = pct + '%';
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            const res = JSON.parse(xhr.responseText);
+                            // Store file path and project_id from upload response
+                            targetValue.value = res.filename || file.name;
+                            uploadedFilename.value = res.filename || file.name;
+                            if (res.platform) platformSelect.value = res.platform;
+                            dropLabel.innerHTML = '<span style="color:var(--accent);">✓ Upload complete</span>';
+                            progressWrap.style.display = 'none';
+                            // Store project_id from upload if available
+                            if (res.project_id) uploadedFilename.dataset.projectId = res.project_id;
+                            resolve(res);
+                        } else {
+                            try {
+                                const err = JSON.parse(xhr.responseText);
+                                reject(new Error(err.detail || 'Upload failed'));
+                            } catch { reject(new Error('Upload failed: ' + xhr.status)); }
+                        }
+                    });
+
+                    xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+                    xhr.send(formData);
+                });
+            } catch (err) {
+                progressWrap.style.display = 'none';
+                setDropZoneError(err.message);
+                targetValue.value = '';
+            }
+        }
+
+        // Click on drop zone → open file picker
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+
+        // File input change
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+        });
+
+        // Drag events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropZoneActive(true);
+            dropLabel.innerHTML = '<span style="color:var(--accent);">Release to upload</span>';
+        });
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropZoneActive(false);
+            if (!targetValue.value) {
+                dropLabel.innerHTML = 'Drop file here or <span style="color:var(--accent);text-decoration:underline;">browse</span>';
+            }
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDropZoneActive(false);
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) handleFile(files[0]);
+        });
+
+        // Also allow dragging onto the whole page
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+
+        // ── Radio profile selection styling ──────────────────────────────────
+        const radios = document.querySelectorAll('#scan-profile-group input[type="radio"]');
+        const customPanel = document.getElementById('custom-tools-panel');
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
+                radio.closest('.radio-option').classList.add('selected');
+                customPanel.style.display = radio.value === 'custom' ? 'block' : 'none';
+            });
+        });
+
+        // Auto-detect platform from typed project name
+        nameInput?.addEventListener('input', () => {
+            const val = nameInput.value.toLowerCase();
+            if (val.endsWith('.apk')) platformSelect.value = 'android';
+            else if (val.endsWith('.ipa')) platformSelect.value = 'ios';
+            else if (['.exe', '.dmg', '.deb'].some(e => val.endsWith(e))) platformSelect.value = 'desktop';
+        });
+    })();
+</script>
+{% endblock %}

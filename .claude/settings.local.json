@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c \"from config import settings; print\\(f'Config loaded: {settings.APP_NAME}'\\); from database import init_db; print\\('Database module OK'\\); from models import ScanCreate, FindingCreate; print\\('Models OK'\\); from services.tools import APKToolRunner; print\\('Tool runners OK'\\); print\\('All imports successful!'\\)\")",
+      "Bash(sudo apt:*)",
+      "Bash(python3 -m py_compile routes/runtime.py services/frida_service.py)"
+    ]
+  }
+}

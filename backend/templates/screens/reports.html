@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Reports — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Reports</h1>
+            <p class="page-header__subtitle">{{ project.name if project else 'No active project' }}</p>
+        </div>
+    </div>
+
+    <div class="card" style="max-width:640px;margin-bottom:var(--sp-8);" id="generate-report-card">
+        <div
+            style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-5);">
+            Generate Report</div>
+
+        <div class="field" style="margin-bottom:var(--sp-5);">
+            <div class="field__label">Template</div>
+            <div class="radio-group" id="report-template-group" role="radiogroup" aria-label="Report template">
+                {% for val, label, desc in [
+                ("masvs", "OWASP MASVS", "Mobile standard — pass/fail compliance"),
+                ("owasp_top_10", "OWASP Top 10", "Web standard — injection, auth, SSRF…"),
+                ("sbom", "SBOM", "Dependency bill — libraries + CVEs"),
+                ("privacy_audit", "Privacy Audit", "Data flow — collection, transmission, encryption"),
+                ("executive_summary", "Executive Summary", "Non-technical — for CTOs and clients"),
+                ("custom", "Custom", "Build your own — drag sections, add branding"),
+                ] %}
+                <label class="radio-option {% if loop.first %}selected{% endif %}" id="template-{{ val }}-label">
+                    <input type="radio" name="report_template" value="{{ val }}" id="template-{{ val }}" {% if
+                        loop.first %}checked{% endif %} />
+                    <div class="radio-option__dot" aria-hidden="true"></div>
+                    <div>
+                        <div class="radio-option__text">{{ label }}</div>
+                        <div class="radio-option__desc">{{ desc }}</div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="field" style="margin-bottom:var(--sp-5);">
+            <div class="field__label">Format</div>
+            <div style="display:flex;gap:var(--sp-2);" role="group" aria-label="Report format">
+                {% for fmt_id, fmt_label in [("pdf","PDF"),("markdown","Markdown"),("json","JSON"),("html","HTML")] %}
+                <button class="btn btn--ghost btn--sm {% if loop.first %}active{% endif %}" data-format="{{ fmt_id }}"
+                    id="format-btn-{{ fmt_id }}" onclick="selectFormat(this)">{{ fmt_label
+                    }}</button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="field" style="margin-bottom:var(--sp-6);">
+            <div class="field__label">Scope</div>
+            <div style="display:flex;gap:var(--sp-4);">
+                <label style="display:flex;align-items:center;gap:var(--sp-2);font-size:13px;cursor:pointer;">
+                    <input type="radio" name="report_scope" value="full" checked style="accent-color:var(--accent);" />
+                    Full project
+                </label>
+                <label style="display:flex;align-items:center;gap:var(--sp-2);font-size:13px;cursor:pointer;">
+                    <input type="radio" name="report_scope" value="selected" style="accent-color:var(--accent);" />
+                    Selected findings
+                </label>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn--primary btn--lg" id="generate-report-btn" onclick="generateReport()">
+                Generate Report
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <div
+            style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-4);">
+            Past Reports</div>
+        <div class="panel" id="past-reports-panel">
+            {% if reports_list %}
+            {% for r in reports_list %}
+            <div style="display:flex;align-items:center;padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border);"
+                id="report-row-{{ r.id }}">
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <span style="font-size:13px;font-weight:500;">{{ r.template|replace('_', ' ')|title }} · {{
+                        r.format|upper }}</span>
+                    <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);">
+                        {{ project.name if project else '' }} · {{ r.generated_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                </div>
+                <div class="report-status" data-id="{{ r.id }}">
+                    {% if r.file_path %}
+                    <a class="btn btn--ghost btn--sm" href="/api/report/download/{{ r.id }}" download>Download</a>
+                    {% else %}
+                    <span style="font-size:11px;color:var(--text-muted);font-style:italic;">Generating…</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="padding:var(--sp-6);text-align:center;color:var(--text-muted);font-size:13px;">
+                No reports generated yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const projectId = "{{ project.id if project else '' }}";
+
+    function selectFormat(btn) {
+        document.querySelectorAll('[data-format]').forEach(b => {
+            b.style.borderColor = '';
+            b.style.color = '';
+            b.classList.remove('active');
+        });
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.color = 'var(--accent)';
+        btn.classList.add('active');
+    }
+
+    async function generateReport() {
+        const template = document.querySelector('input[name="report_template"]:checked').value;
+        const format = document.querySelector('[data-format].active').dataset.format;
+        const scope = document.querySelector('input[name="report_scope"]:checked').value;
+
+        try {
+            const response = await fetch('/api/reports/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: projectId, template, format, scope })
+            });
+            if (!response.ok) throw new Error('Failed to start generation');
+            window.location.reload();
+        } catch (e) {
+            window.irves?.showToast('Error: ' + e.message);
+        }
+    }
+
+    function pollReports() {
+        document.querySelectorAll('.report-status').forEach(async (el) => {
+            if (el.querySelector('span')) {
+                const id = el.dataset.id;
+                const res = await fetch(`/api/reports/${id}/status`);
+                const data = await res.json();
+                if (data.file_path) {
+                    el.innerHTML = `<a class="btn btn--ghost btn--sm" href="/api/report/download/${id}" download>Download</a>`;
+                }
+            }
+        });
+    }
+    setInterval(pollReports, 5000);
+
+    (function () {
+        const radios = document.querySelectorAll('#report-template-group input[type="radio"]');
+        radios.forEach(r => {
+            r.addEventListener('change', () => {
+                document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
+                r.closest('.radio-option').classList.add('selected');
+            });
+        });
+    })();
+</script>
+{% endblock %}

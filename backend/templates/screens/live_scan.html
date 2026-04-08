@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Live Scan — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title" id="live-scan-title">Scan in Progress</h1>
+            <p class="page-header__subtitle" id="scan-status-subtitle">Initializing pipeline...</p>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);">
+            <button class="btn btn--ghost" id="cancel-scan-live-btn" onclick="cancelScan()">Cancel Scan</button>
+            <a href="#" class="btn btn--primary" id="view-results-btn" style="opacity:0.4;pointer-events:none;">
+                View Full Results
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Scan Wrapper with SSE -->
+    <div class="pipeline-section" id="sse-pipeline">
+
+        <!-- Progress -->
+        <div class="card" style="margin-bottom:var(--sp-6);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3);">
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--accent);"
+                    id="progress-pct">0%</span>
+                <span style="font-size:12px;color:var(--text-muted);" id="progress-eta">Running</span>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar__fill" id="progress-fill" style="width:0%;"></div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-6);">
+
+            <!-- Pipeline -->
+            <div>
+                <div class="panel">
+                    <div class="panel__header">Pipeline</div>
+                    <div style="padding:var(--sp-4);" id="pipeline-list">
+
+                        {% set stages = [
+                        ("manifest", "queued", "Manifest Checks", "Waiting..."),
+                        ("pattern_scan", "queued", "Pattern Scan", "Waiting..."),
+                        ("bytecode", "queued", "Bytecode Analysis","Waiting..."),
+                        ("ai", "queued", "AI Auto-Triage", "Waiting..."),
+                        ("complete", "queued", "Finalizing", "Waiting...")
+                        ] %}
+
+                        {% for stage_id, state, name, detail in stages %}
+                        <div class="pipeline-step pipeline-step--{{ state }}" id="stage-{{ stage_id }}">
+                            <div class="pipeline-step__status-icon" aria-label="{{ state }}">
+                                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"
+                                        opacity="0.3" />
+                                </svg>
+                            </div>
+                            <div class="pipeline-step__name">{{ name }}</div>
+                            <div class="pipeline-step__detail" id="stage-{{ stage_id }}-detail">{{ detail }}</div>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live findings -->
+            <div>
+                <div class="panel" style="height:100%;">
+                    <div class="panel__header">
+                        Live Findings
+                        <span id="live-finding-count" style="font-family:var(--font-mono);color:var(--accent);">0</span>
+                    </div>
+                    <div class="panel__body" id="live-findings-list">
+                        <!-- Findings injected here via SSE and JS -->
+                        <div style="padding:var(--sp-4);color:var(--text-muted);font-size:14px;text-align:center;"
+                            id="findings-placeholder">
+                            Waiting for findings...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Read scan_id and project_id from backend first, fallback to URL params
+    const _params = new URLSearchParams(window.location.search);
+    const _scanId = "{{ scan_id or '' }}" || _params.get('scan_id') || '';
+    const _projectId = "{{ project_id or '' }}" || _params.get('project_id') || '';
+
+    // Update title
+    if (_scanId) {
+        document.getElementById('live-scan-title').textContent = `Scan in Progress (${_scanId.slice(0, 8)})`;
+    }
+
+    // Wire cancel button
+    function cancelScan() {
+        if (!_scanId) return;
+        fetch(`/api/scan/cancel/${_scanId}`, { method: 'POST' })
+            .then(() => window.irves?.showToast('Scan cancelled'));
+    }
+
+    // Wire View Results link once done
+    function onScanComplete() {
+        const btn = document.getElementById('view-results-btn');
+        btn.href = `/dashboard?project=${_projectId}`;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+    }
+
+    // Connect to SSE stream if we have a valid scan_id
+    if (_scanId) {
+        const evtSource = new EventSource(`/api/events/scan/${_scanId}/stream`);
+
+        // ── helper: mark a stage
+        function setStage(id, cls, msg) {
+            const el = document.getElementById('stage-' + id);
+            if (!el) return;
+            el.className = 'pipeline-step pipeline-step--' + cls;
+            const det = el.querySelector('.pipeline-step__detail');
+            if (det && msg) det.innerText = msg;
+            const ico = el.querySelector('.pipeline-step__status-icon');
+            if (ico) {
+                if (cls === 'running') ico.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.25" stroke-dasharray="4 2"/></svg>`;
+                else if (cls === 'completed') ico.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="var(--accent)" opacity="0.2"/><path d="M5 8l2 2 4-4" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+                else if (cls === 'failed') ico.innerHTML = `<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--critical)" stroke-width="1.25"/><path d="M6 6l4 4M10 6l-4 4" stroke="var(--critical)" stroke-width="1.25"/></svg>`;
+            }
+        }
+
+        // ── map progress messages to stages
+        function inferStage(msg) {
+            const m = (msg || '').toLowerCase();
+            if (m.includes('apktool') || m.includes('decompil')) return 'apk_analyzer';
+            if (m.includes('manifest')) return 'manifest';
+            if (m.includes('pattern') || m.includes('smali') || m.includes('string')) return 'pattern_scan';
+            if (m.includes('androguard') || m.includes('bytecode') || m.includes('class')) return 'bytecode';
+            if (m.includes('ai') || m.includes('triage') || m.includes('pre-analyz')) return 'ai';
+            if (m.includes('complete') || m.includes('total') || m.includes('final')) return 'complete';
+            return null;
+        }
+
+        // ── event handler function
+        function handleEvent(e) {
+            if (!e.data) return;
+            let pdata;
+            try { pdata = JSON.parse(e.data); } catch { return; }
+
+            const evtType = pdata.type;
+
+            if (evtType === 'init') {
+                if (pdata.status === 'completed') {
+                    document.getElementById('scan-status-subtitle').innerText = '✓ Scan already completed';
+                    document.getElementById('progress-pct').innerText = '100%';
+                    document.getElementById('progress-fill').style.width = '100%';
+                    setStage('manifest', 'completed', 'Complete');
+                    setStage('pattern_scan', 'completed', 'Complete');
+                    setStage('bytecode', 'completed', 'Complete');
+                    setStage('ai', 'completed', 'Complete');
+                    setStage('complete', 'completed', 'Done');
+                    onScanComplete();
+                    evtSource.close();
+                    return;
+                }
+                document.getElementById('scan-status-subtitle').innerText = 'Starting up...';
+                document.getElementById('progress-pct').innerText = (pdata.progress || 0) + '%';
+                document.getElementById('progress-fill').style.width = (pdata.progress || 0) + '%';
+            } else if (evtType === 'status') {
+                document.getElementById('scan-status-subtitle').innerText = pdata.message || 'Running…';
+            } else if (evtType === 'tool_start') {
+                setStage(pdata.tool, 'running', pdata.message || 'Running…');
+                setStage('apk_analyzer', 'running', pdata.message || 'Running…');
+            } else if (evtType === 'tool_complete') {
+                setStage(pdata.tool, 'completed', `✓ ${pdata.findings_count || 0} items`);
+                if (pdata.tool === 'apk_analyzer') {
+                    setStage('ai', 'running', 'Connecting to Claude…');
+                } else if (pdata.tool === 'ai') {
+                    setStage('complete', 'running', 'Finalizing…');
+                }
+            } else if (evtType === 'tool_error') {
+                setStage(pdata.tool, 'failed', '✗ ' + (pdata.message || 'Error'));
+            } else if (evtType === 'progress_pct') {
+                const pct = (pdata.progress || 0) + '%';
+                document.getElementById('progress-pct').innerText = pct;
+                document.getElementById('progress-fill').style.width = pct;
+                document.getElementById('progress-fill').closest('[role="progressbar"]')?.setAttribute('aria-valuenow', pdata.progress || 0);
+            } else if (evtType === 'progress') {
+                document.getElementById('scan-status-subtitle').innerText = pdata.message || '';
+                const stage = inferStage(pdata.message);
+                if (stage) setStage(stage, 'running', pdata.message);
+            } else if (evtType === 'complete') {
+                document.getElementById('scan-status-subtitle').innerText = '✓ Scan complete — ' + (pdata.findings_count || 0) + ' findings';
+                document.getElementById('progress-pct').innerText = '100%';
+                document.getElementById('progress-fill').style.width = '100%';
+                setStage('complete', 'completed', 'Done');
+                document.getElementById('progress-eta').innerText = 'Complete';
+                onScanComplete();
+                evtSource.close();
+            } else if (evtType === 'finding') {
+                const list = document.getElementById('live-findings-list');
+                const placeholder = document.getElementById('findings-placeholder');
+                if (placeholder) placeholder.remove();
+                const countEl = document.getElementById('live-finding-count');
+                if (countEl) countEl.innerText = parseInt(countEl.innerText || '0') + 1;
+                const wrapper = document.createElement('a');
+                wrapper.className = 'finding-row';
+                wrapper.href = pdata.finding_id ? `/findings/${pdata.finding_id}` : '#';
+                wrapper.innerHTML = `
+                    <div class="finding-row__severity">
+                        <span class="severity-dot severity-dot--${pdata.severity}" aria-hidden="true"></span>
+                    </div>
+                    <div class="finding-row__content">
+                        <div class="finding-row__title">${pdata.title}</div>
+                        <div class="finding-row__location">${pdata.location || pdata.category || pdata.tool}</div>
+                    </div>
+                    <div class="finding-row__arrow" aria-hidden="true">›</div>
+                `;
+                list.appendChild(wrapper);
+            } else if (evtType === 'error') {
+                document.getElementById('scan-status-subtitle').style.color = 'var(--critical)';
+                document.getElementById('scan-status-subtitle').innerText = 'Error: ' + (pdata.message || 'unknown error');
+            }
+        }
+
+        // Register event listeners for each event type (SSE requires addEventListener for named events)
+        ['init', 'status', 'tool_start', 'tool_complete', 'tool_error', 'progress_pct', 'progress', 'complete', 'finding', 'error'].forEach(eventType => {
+            evtSource.addEventListener(eventType, handleEvent);
+        });
+
+        // Also listen for generic 'message' events as fallback
+        evtSource.addEventListener('message', handleEvent);
+
+        evtSource.onerror = function () {
+            console.warn('SSE connection lost');
+        };
+    } else {
+        document.getElementById('scan-status-subtitle').textContent = 'No scan ID — start a scan from the New Scan page.';
+    }
+</script>
+{% endblock %}
