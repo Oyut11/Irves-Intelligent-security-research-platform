@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Finding Detail — IRVES{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:760px;">
+
+    <!-- Back -->
+    <a href="/dashboard?project={{ scan.project_id if scan else '' }}"
+        style="display:inline-flex;align-items:center;gap:var(--sp-2);font-size:12px;color:var(--text-muted);margin-bottom:var(--sp-6);text-decoration:none;transition:color var(--transition);"
+        onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'"
+        id="back-to-dashboard-btn">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </svg>
+        Back to Dashboard
+    </a>
+
+    {% if finding %}
+    {% set sev = finding.severity.value if finding.severity.value is defined else finding.severity %}
+    <!-- Severity + title -->
+    <div style="margin-bottom:var(--sp-5);">
+        <span class="severity-badge severity-badge--{{ sev }}" style="margin-bottom:var(--sp-3);display:inline-flex;">
+            {% if sev == 'critical' %}🔴{% elif sev == 'high' %}🟠{% elif sev == 'medium' %}🟡{% else %}🟢{% endif %}
+            {{ sev|upper }}
+        </span>
+        <h1 class="page-header__title" style="margin-top:var(--sp-2);">{{ finding.title }}</h1>
+    </div>
+
+    <!-- Metadata grid -->
+    <div
+        style="display:grid;grid-template-columns:auto 1fr;gap:var(--sp-2) var(--sp-6);font-size:12px;margin-bottom:var(--sp-6);">
+        <span style="color:var(--text-muted);font-weight:600;letter-spacing:0.04em;">Location</span>
+        <span style="font-family:var(--font-mono);">{{ finding.location or 'Unknown' }}</span>
+
+        <span style="color:var(--text-muted);font-weight:600;letter-spacing:0.04em;">Tool</span>
+        <span>{{ finding.tool }}</span>
+
+        <span style="color:var(--text-muted);font-weight:600;letter-spacing:0.04em;">OWASP</span>
+        <span>{{ finding.owasp_mapping or 'Uncategorized' }}</span>
+
+        <span style="color:var(--text-muted);font-weight:600;letter-spacing:0.04em;">Status</span>
+        <span style="color:var(--low);">Open</span>
+    </div>
+
+    <!-- Details/Description -->
+    <div style="margin-bottom:var(--sp-5);">
+        <div
+            style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-2);">
+            Details</div>
+        <div class="code-block" role="region" aria-label="Description">
+            <div style="font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;">{{ finding.description }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Irves Analysis (AI block) -->
+    <div style="margin-bottom:var(--sp-5);">
+        <div
+            style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-2);">
+            Irves Analysis</div>
+        <div class="card" style="border-left: 3px solid var(--{{ sev }});" id="ai-analysis-block">
+            {% if finding.ai_analysis %}
+            <div style="font-size:13px;line-height:1.7;color:var(--text-primary);">
+                <p style="margin-bottom:var(--sp-4);">{{ finding.ai_analysis.get('explanation', 'Analysis pending...')
+                    }}</p>
+
+                <div
+                    style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-3);">
+                    Impact & Attack Path</div>
+                <div style="color:var(--text-muted);font-size:12px;margin-bottom:var(--sp-4);">
+                    {{ finding.ai_analysis.get('impact', '...') }}
+                    <br><br>
+                    {{ finding.ai_analysis.get('attack_path', '...') }}
+                </div>
+
+                <div style="margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:1px solid var(--border);">
+                    <div
+                        style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-3);">
+                        Recommendation</div>
+                    <p style="font-size:12px;color:var(--text-muted);line-height:1.7;">
+                        {{ finding.ai_analysis.get('fix', 'Fix recommendation not available.') }}
+                    </p>
+                </div>
+
+                {% if finding.ai_analysis.get('references') %}
+                <div style="margin-top:var(--sp-3);font-size:11px;color:var(--text-faint);">
+                    <strong style="color:var(--text-muted);">References:</strong>
+                    {% for ref in finding.ai_analysis.get('references', []) %}
+                    <div style="margin-top:4px;">• {{ ref }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="font-size:13px;color:var(--text-muted);text-align:center;padding:var(--sp-4) 0;"
+                id="ai-placeholder">
+                <button class="btn btn--sm btn--primary" onclick="requestAnalysis('{{ finding.id }}')">
+                    Generate AI Analysis
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Ask Irves -->
+    <div style="margin-bottom:var(--sp-6);">
+        <div
+            style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-2);">
+            Ask Irves</div>
+        <div style="display:flex;align-items:center;gap:var(--sp-3);padding:0 var(--sp-4);height:44px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);transition:border-color var(--transition);"
+            onfocus-within="this.style.borderColor='var(--accent)'">
+            <input type="text" id="ask-irves-input" placeholder="Ask a question about this finding..."
+                style="flex:1;font-size:13px;background:none;border:none;outline:none;color:var(--text-primary);"
+                autocomplete="off" aria-label="Ask Irves about this finding" />
+            <button class="btn btn--sm btn--primary" id="ask-irves-submit-btn" onclick="submitChat('{{ finding.id }}')">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+        <p style="font-size:11px;color:var(--text-faint);margin-top:var(--sp-2);" id="chat-output"></p>
+        <div id="chat-stream"
+            style="font-size:12px;color:var(--text-muted);line-height:1.7;padding-top:var(--sp-2);white-space:pre-wrap;">
+        </div>
+    </div>
+
+    {% else %}
+    <div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">Finding not found.</div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div style="display:flex;gap:var(--sp-3);padding-top:var(--sp-4);border-top:1px solid var(--border);">
+        {% if finding %}
+        <button class="btn btn--ghost" id="mark-resolved-btn"
+            onclick="setFindingStatus('{{ finding.id }}', 'resolved')">Mark Resolved</button>
+        <button class="btn btn--ghost" id="ignore-finding-btn"
+            onclick="setFindingStatus('{{ finding.id }}', 'ignored')">Ignore</button>
+        {% endif %}
+        <button class="btn btn--ghost" id="export-finding-btn" style="margin-left:auto;"
+            onclick="exportFinding()">Export Finding</button>
+    </div>
+
+</div>
+
+<script>
+    async function requestAnalysis(findingId) {
+        const block = document.getElementById('ai-analysis-block');
+        block.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;">⚙ Generating AI analysis…</div>';
+
+        try {
+            const res = await fetch(`/api/analysis/finding/${findingId}`, { method: 'POST' });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+
+            // Reload page to show the new analysis stored to DB
+            window.location.reload();
+        } catch (err) {
+            block.innerHTML = `<div style="color:var(--critical);padding:var(--sp-4);font-size:13px;">✗ ${err.message}</div>`;
+        }
+    }
+
+    async function submitChat(findingId) {
+        const input = document.getElementById('ask-irves-input');
+        const chatStream = document.getElementById('chat-stream');
+        const chatOutput = document.getElementById('chat-output');
+        const question = input.value.trim();
+        if (!question) return;
+
+        input.value = '';
+        chatOutput.textContent = '';
+        chatStream.textContent = 'Thinking…';
+
+        try {
+            const res = await fetch(`/api/analysis/chat/${findingId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: question }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            // Stream the response
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            chatStream.textContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                // Extract data from SSE lines
+                chunk.split('\n').forEach(line => {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const evt = JSON.parse(line.slice(6));
+                            if (evt.token) chatStream.textContent += evt.token;
+                            if (evt.done) chatStream.textContent += '\n';
+                        } catch { }
+                    }
+                });
+            }
+        } catch (err) {
+            chatStream.textContent = '';
+            chatOutput.textContent = '✗ ' + err.message;
+        }
+    }
+
+    async function setFindingStatus(findingId, status) {
+        try {
+            const res = await fetch(`/api/scan/findings/${findingId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            window.irves?.showToast(`Finding marked as ${status}`);
+            document.getElementById('mark-resolved-btn').disabled = status === 'resolved';
+            document.getElementById('ignore-finding-btn').disabled = status === 'ignored';
+        } catch (err) {
+            window.irves?.showToast('Error: ' + err.message);
+        }
+    }
+
+    function exportFinding() {
+        const findingId = window.location.pathname.split('/').pop();
+        window.open(`/api/scan/findings/${findingId}/export`, '_blank');
+    }
+
+    // Allow Enter to submit chat
+    document.getElementById('ask-irves-input')?.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('ask-irves-submit-btn').click();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% from "components/macros.html" import nav_icon %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="IRVES — Intelligent Security Analysis for Mobile, Desktop, and Web" />
+  <title>{% block title %}IRVES{% endblock %}</title>
+
+  <!-- Design system -->
+  <link rel="stylesheet" href="/static/css/irves.css" />
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.1/sse.js" defer></script>
+
+  {% block head %}{% endblock %}
+</head>
+
+<body>
+
+  <!-- ── App Layout ──────────────────────────────────────────────────────── -->
+  <div class="app-layout" id="app-layout">
+
+    <!-- TOP BAR -->
+    <header class="topbar" role="banner">
+      <div class="topbar__left">
+        <button class="topbar__toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect y="2" width="16" height="1.5" rx="0.75" fill="currentColor" />
+            <rect y="7" width="16" height="1.5" rx="0.75" fill="currentColor" />
+            <rect y="12" width="16" height="1.5" rx="0.75" fill="currentColor" />
+          </svg>
+        </button>
+
+        <div class="topbar__wordmark">
+          <span class="topbar__wordmark-name">IRVES</span>
+          <span class="topbar__wordmark-version">v0.1.0 · alpha</span>
+        </div>
+      </div>
+
+      <div class="topbar__center">
+        <button class="topbar__search" id="search-trigger" aria-label="Open command palette (⌘K)"
+          aria-haspopup="dialog">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" />
+            <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="topbar__search-text">Search or jump to…</span>
+          <div class="topbar__search-kbd">
+            <kbd>⌘</kbd><kbd>K</kbd>
+          </div>
+        </button>
+      </div>
+
+      <div class="topbar__right">
+        <button class="topbar__icon-btn" id="notifications-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 1a5 5 0 0 1 5 5v2.5l1 2H2l1-2V6a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.5" />
+            <path d="M6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="topbar__notification-dot" aria-hidden="true"></span>
+        </button>
+
+        <div class="topbar__avatar" role="button" tabindex="0" aria-label="Account">IR</div>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar__nav">
+        <div class="sidebar__section-label">Navigation</div>
+
+        {% set nav_items = [
+        ("projects", "/", "Projects", "folder"),
+        ("scan", "/scan", "Scan", "search"),
+        ("live_scan", "/live-scan", "Live Scan View", "activity"),
+        ("runtime", "/runtime", "Runtime Workspace", "cpu"),
+        ("network", "/network", "Network Intercept", "globe"),
+        ("dashboard", "/dashboard", "Dashboard", "grid"),
+        ("reports", "/reports", "Reports", "file-text"),
+        ("settings", "/settings", "Settings", "settings"),
+        ] %}
+
+        {% for key, href, label, icon in nav_items %}
+        <a class="nav-item {% if active_nav == key %}active{% endif %}" href="{{ href }}" data-nav-href="{{ href }}"
+          aria-current="{% if active_nav == key %}page{% else %}false{% endif %}" title="{{ label }}">
+          <span class="nav-item__icon" aria-hidden="true">{{ nav_icon(icon) }}</span>
+          <span class="nav-item__label">{{ label }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="main-content" role="main">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /.app-layout -->
+
+  <!-- COMMAND PALETTE OVERLAY -->
+  <div class="palette-overlay" id="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette">
+      <div class="palette__input-row">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="color:var(--text-muted);flex-shrink:0"
+          aria-hidden="true">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" />
+          <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <input type="text" class="palette__input" id="palette-input" placeholder="Search screens, scans, findings…"
+          autocomplete="off" spellcheck="false" aria-label="Search" />
+        <kbd
+          style="font-family:var(--font-mono);font-size:10px;color:var(--text-faint);padding:2px 5px;border:1px solid var(--border);border-radius:3px;flex-shrink:0;">Esc</kbd>
+      </div>
+      <div class="palette__results" id="palette-results" role="listbox"></div>
+      <div class="palette__footer">
+        <span><kbd>↑↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> open</span>
+        <span><kbd>Esc</kbd> close</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+
+</html>

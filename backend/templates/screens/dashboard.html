@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            {% if project %}
+            <h1 class="page-header__title">{{ project.name }}</h1>
+            <p class="page-header__subtitle">{{ project.platform|title }} {% if scan %}· Scanned {{
+                scan.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</p>
+            {% else %}
+            <h1 class="page-header__title">Dashboard</h1>
+            <p class="page-header__subtitle">No project selected</p>
+            {% endif %}
+        </div>
+        <div style="display:flex;gap:var(--sp-3);">
+            {% if project and scan %}
+            <button class="btn btn--ghost" id="rescan-btn"
+                onclick="reScan('{{ project.id }}', '{{ project.platform }}')">
+                Re-scan
+            </button>
+            {% else %}
+            <a href="/scan" class="btn btn--ghost" id="rescan-btn">New Scan</a>
+            {% endif %}
+            <a href="/reports?project={{ project.id if project else '' }}" class="btn btn--ghost"
+                id="export-report-btn">Export Report</a>
+            <button class="btn btn--ghost" id="share-btn"
+                onclick="window.irves?.showToast('Share link copied!')">Share</button>
+        </div>
+    </div>
+
+    <!-- Severity stat cards -->
+    <div class="stat-cards" role="list" aria-label="Finding severity summary">
+        {% for label, count, cls in
+        [("Critical", severity_counts["critical"] | default(0), "critical"),
+        ("High", severity_counts["high"] | default(0), "high"),
+        ("Medium", severity_counts["medium"] | default(0), "medium"),
+        ("Low", severity_counts["low"] | default(0), "low")] %}
+        <div class="stat-card stat-card--{{ cls }}" role="listitem" id="stat-{{ cls }}">
+            <div class="stat-card__value">{{ count }}</div>
+            <div class="stat-card__label">{{ label }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Charts row (placeholder) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-5);margin-top:var(--sp-6);">
+
+        <!-- Distribution chart -->
+        <div class="card" id="chart-distribution">
+            <div
+                style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-4);">
+                Static vs Runtime Distribution
+            </div>
+            <!-- SVG donut chart (static mock for Phase 1 shell) -->
+            <div style="display:flex;align-items:center;gap:var(--sp-6);">
+                <svg width="100" height="100" viewBox="0 0 36 36" aria-label="Finding distribution chart">
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--surface-raised)" stroke-width="3.5" />
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--accent)" stroke-width="3.5"
+                        stroke-dasharray="70 30" stroke-dashoffset="25" stroke-linecap="round" />
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--high)" stroke-width="3.5"
+                        stroke-dasharray="30 70" stroke-dashoffset="-45" stroke-linecap="round" />
+                </svg>
+                <div style="display:flex;flex-direction:column;gap:var(--sp-3);">
+                    <div style="display:flex;align-items:center;gap:var(--sp-2);font-size:12px;">
+                        <span
+                            style="width:10px;height:10px;border-radius:2px;background:var(--accent);flex-shrink:0;"></span>
+                        <span style="color:var(--text-muted);">Static</span>
+                        <span
+                            style="margin-left:auto;font-family:var(--font-mono);color:var(--text-primary);">Wait</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:var(--sp-2);font-size:12px;">
+                        <span
+                            style="width:10px;height:10px;border-radius:2px;background:var(--high);flex-shrink:0;"></span>
+                        <span style="color:var(--text-muted);">Runtime</span>
+                        <span
+                            style="margin-left:auto;font-family:var(--font-mono);color:var(--text-primary);">Calc</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OWASP category chart -->
+        <div class="card" id="chart-categories">
+            <div
+                style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-4);">
+                By OWASP Category
+            </div>
+            {% for cat, count, max in [
+            ("M1 Storage", 6, 10),
+            ("M3 Auth", 4, 10),
+            ("M5 Network", 3, 10),
+            ("M9 Cryptography", 2, 10),
+            ("M2 Credentials", 1, 10),
+            ] %}
+            <div style="margin-bottom:var(--sp-3);">
+                <div
+                    style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;">
+                    <span style="font-family:var(--font-mono);">{{ cat }}</span>
+                    <span style="color:var(--text-primary);">{{ count }}</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar__fill" style="width:{{ (count/max*100)|int }}%;background:var(--accent);">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- Findings table -->
+    <div class="panel" style="margin-top:var(--sp-6);" id="findings-panel">
+        <div class="findings-header">
+            <span class="findings-header__title">Findings <span
+                    style="color:var(--text-primary);font-family:var(--font-mono);">{{ findings|length }}</span></span>
+            <button class="btn btn--sm btn--ghost" id="filter-findings-btn">
+                Filter
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
+                </svg>
+            </button>
+        </div>
+
+        {% if findings %}
+        {% for f in findings %}
+        {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
+        <a class="finding-row" href="/findings/{{ f.id }}" id="finding-row-{{ f.id }}"
+            aria-label="{{ f.title }} — {{ sev }}">
+            <div class="finding-row__severity">
+                <span class="severity-badge severity-badge--{{ sev }}">{{ sev }}</span>
+            </div>
+            <div class="finding-row__content">
+                <div class="finding-row__title">{{ f.title }}</div>
+                <div class="finding-row__location">{{ f.location }}</div>
+            </div>
+            <div class="finding-row__arrow" aria-hidden="true">›</div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">
+            No findings to display.
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+    async function reScan(projectId, platform) {
+        const btn = document.getElementById('rescan-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Starting…'; }
+        try {
+            const res = await fetch(`/api/scan/${platform}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: projectId, profile: 'full' }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to start scan');
+            }
+            const scan = await res.json();
+            window.location.href = `/live-scan?scan_id=${scan.id}&project_id=${projectId}`;
+        } catch (err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Re-scan'; }
+            window.irves?.showToast('Error: ' + err.message);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+{% block title %}Settings — IRVES{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:700px;">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Settings</h1>
+            <p class="page-header__subtitle">Tool health, device management, AI configuration &amp; scan profiles</p>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);">
+            <button class="btn btn--ghost btn--sm" id="refresh-tools-btn" onclick="loadToolStatus()">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" id="refresh-icon">
+                    <path d="M14 8A6 6 0 1 1 8 2a6 6 0 0 1 4.24 1.76M14 2v4h-4" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Tool Health ─────────────────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-tools-section">
+        <div class="section-label">Tool Health</div>
+        <div class="panel" id="tools-panel">
+            <div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;text-align:center;"
+                id="tools-loading">
+                Checking tool status…
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Connected Devices ──────────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-device-section">
+        <div class="section-label">Connected Devices (ADB)</div>
+        <div class="panel" id="devices-panel">
+            <div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;text-align:center;"
+                id="devices-loading">
+                Scanning for devices…
+            </div>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-3);">
+            <button class="btn btn--ghost btn--sm" id="refresh-devices-btn" onclick="refreshDevices()">Refresh
+                ADB</button>
+        </div>
+    </section>
+
+    <!-- ── Device Configuration ───────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-device-config-section">
+        <div class="section-label">Device Configuration</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <div class="field">
+                <label class="field__label" for="adb-path-input">ADB Binary Path</label>
+                <input class="field__input" type="text" id="adb-path-input" placeholder="adb" autocomplete="off" />
+                <div class="field__hint">Leave blank to use system PATH</div>
+            </div>
+            <div class="field">
+                <label class="field__label" for="frida-server-path">Frida Server Path (on device)</label>
+                <input class="field__input" type="text" id="frida-server-path"
+                    placeholder="/data/local/tmp/frida-server" autocomplete="off" />
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+                <button class="btn btn--ghost btn--sm" id="save-device-btn" onclick="saveSection('device')">Save Device
+                    Config</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── MobSF Configuration ────────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-mobsf-section">
+        <div class="section-label">MobSF Configuration</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <div class="field">
+                <label class="field__label" for="mobsf-url-input">MobSF Server URL</label>
+                <input class="field__input" type="text" id="mobsf-url-input" placeholder="http://127.0.0.1:8000"
+                    autocomplete="off" />
+            </div>
+            <div class="field">
+                <label class="field__label" for="mobsf-api-key-input">MobSF API Key</label>
+                <input class="field__input" type="password" id="mobsf-api-key-input" placeholder="your-mobsf-api-key"
+                    autocomplete="off" />
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span id="mobsf-status-label" style="font-size:12px;color:var(--text-muted);"></span>
+                <div style="display:flex;gap:var(--sp-3);">
+                    <button class="btn btn--ghost btn--sm" id="test-mobsf-btn" onclick="testMobSF()">Test
+                        Connection</button>
+                    <button class="btn btn--ghost btn--sm" id="save-mobsf-btn"
+                        onclick="saveSection('mobsf')">Save</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── AI Configuration ───────────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-ai-section">
+        <div class="section-label">AI Reasoning Layer</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <div class="field">
+                <label class="field__label" for="ai-provider-select">Provider</label>
+                <select class="field__select" id="ai-provider-select">
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="openai">OpenAI (GPT-4)</option>
+                </select>
+            </div>
+            <div class="field">
+                <label class="field__label" for="ai-api-key-input">API Key</label>
+                <input class="field__input" type="password" id="ai-api-key-input" placeholder="sk-…"
+                    autocomplete="off" />
+            </div>
+            <div class="field">
+                <label class="field__label" for="ai-model-input">Model</label>
+                <input class="field__input" type="text" id="ai-model-input" placeholder="claude-sonnet-4-6"
+                    autocomplete="off" />
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+                <button class="btn btn--ghost btn--sm" id="save-ai-btn" onclick="saveSection('ai')">Save AI
+                    Config</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Scan Profiles ──────────────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-profiles-section">
+        <div class="section-label">Scan Profiles</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-3);">
+            {% for name, desc, tools in [
+            ("quick", "Fast static-only pass (~2 min)", "APKTool, JADX"),
+            ("standard", "Static + MobSF report (~5 min)", "APKTool, JADX, MobSF"),
+            ("full", "All tools including runtime (~15 min)", "APKTool, JADX, MobSF, Frida, mitmproxy"),
+            ("runtime_only", "Live session only, no static", "Frida, mitmproxy"),
+            ] %}
+            <div class="profile-row{% if not loop.last %} profile-row--bordered{% endif %}">
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:600;font-family:var(--font-mono);">{{ name }}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ desc }} — <span
+                            style="color:var(--accent);">{{ tools }}</span></div>
+                </div>
+                {% if name == "standard" %}
+                <span
+                    style="font-size:10px;padding:2px 8px;border-radius:3px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:700;letter-spacing:.04em;">DEFAULT</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- ── Danger Zone ────────────────────────────────────────────── -->
+    <section id="settings-danger-section">
+        <div class="section-label" style="color:var(--critical);">Danger Zone</div>
+        <div class="card" style="border-color:color-mix(in srgb,var(--critical) 30%,transparent);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-size:13px;font-weight:600;">Reset All Settings</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Restore defaults and clear saved
+                        API keys</div>
+                </div>
+                <button class="btn btn--ghost btn--sm" style="color:var(--critical);border-color:var(--critical);"
+                    id="reset-settings-btn" onclick="resetSettings()">Reset</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: var(--sp-3);
+    }
+
+    .field__hint {
+        font-size: 11px;
+        color: var(--text-faint);
+        margin-top: 4px;
+    }
+
+    .tool-row {
+        display: flex;
+        align-items: center;
+        padding: var(--sp-3) var(--sp-5);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .tool-row:last-child {
+        border-bottom: none;
+    }
+
+    .device-row {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-3);
+        padding: var(--sp-3) var(--sp-5);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .device-row:last-child {
+        border-bottom: none;
+    }
+
+    .profile-row {
+        display: flex;
+        align-items: center;
+        padding: var(--sp-3) 0;
+    }
+
+    .profile-row--bordered {
+        border-bottom: 1px solid var(--border);
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .status-dot--ok {
+        background: var(--low);
+        box-shadow: 0 0 6px var(--low);
+    }
+
+    .status-dot--err {
+        background: var(--critical);
+    }
+
+    .status-dot--warn {
+        background: var(--medium);
+    }
+</style>
+
+<script>
+    const API = '/api/settings';
+
+    // ── Load current settings ──────────────────────────────────────────
+    async function loadSettings() {
+        try {
+            const res = await fetch(API + '/settings');
+            if (!res.ok) return;
+            const data = await res.json();
+
+            // Device
+            if (data.device) {
+                document.getElementById('adb-path-input').value = data.device.adb_path || '';
+                document.getElementById('frida-server-path').value = data.device.frida_server_path || '';
+            }
+            // MobSF
+            if (data.mobsf) {
+                document.getElementById('mobsf-url-input').value = data.mobsf.url || '';
+                document.getElementById('mobsf-api-key-input').value = data.mobsf.api_key || '';
+            }
+            // AI
+            if (data.ai) {
+                const provSel = document.getElementById('ai-provider-select');
+                if (provSel) provSel.value = data.ai.provider || 'anthropic';
+                document.getElementById('ai-api-key-input').value = data.ai.api_key || '';
+                document.getElementById('ai-model-input').value = data.ai.model || '';
+            }
+        } catch (e) { console.warn('Could not load settings:', e); }
+    }
+
+    // ── Save a section ─────────────────────────────────────────────────
+    async function saveSection(section) {
+        let payload = {};
+
+        if (section === 'device') {
+            payload.device = {
+                adb_path: document.getElementById('adb-path-input').value.trim(),
+                frida_server_path: document.getElementById('frida-server-path').value.trim(),
+            };
+        } else if (section === 'mobsf') {
+            payload.mobsf = {
+                url: document.getElementById('mobsf-url-input').value.trim(),
+                api_key: document.getElementById('mobsf-api-key-input').value.trim(),
+            };
+        } else if (section === 'ai') {
+            payload.ai = {
+                provider: document.getElementById('ai-provider-select').value,
+                api_key: document.getElementById('ai-api-key-input').value.trim(),
+                model: document.getElementById('ai-model-input').value.trim(),
+            };
+        }
+
+        try {
+            const res = await fetch(API + '/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                window.irves?.showToast('Settings saved');
+            } else {
+                window.irves?.showToast('Save failed');
+            }
+        } catch (e) {
+            window.irves?.showToast('Save error: ' + e.message);
+        }
+    }
+
+    async function resetSettings() {
+        if (!confirm('Reset all settings to defaults? This will clear saved API keys.')) return;
+        await fetch(API + '/settings/reset', { method: 'POST' });
+        window.irves?.showToast('Settings reset to defaults');
+        loadSettings();
+        loadToolStatus();
+    }
+
+    // ── Tool status ────────────────────────────────────────────────────
+    async function loadToolStatus() {
+        const panel = document.getElementById('tools-panel');
+        panel.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;text-align:center;">Checking tools…</div>';
+
+        const icon = document.getElementById('refresh-icon');
+        icon.style.animation = 'spin 1s linear infinite';
+
+        try {
+            const res = await fetch(API + '/tools/status');
+            const data = await res.json();
+            const tools = data.tools || [];
+
+            if (tools.length === 0) {
+                panel.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);">No tools detected.</div>';
+                return;
+            }
+
+            panel.innerHTML = tools.map(t => {
+                const ok = t.installed || t.running;
+                const dotClass = ok ? 'status-dot--ok' : 'status-dot--err';
+                const badge = ok
+                    ? `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:color-mix(in srgb,var(--low) 15%,transparent);color:var(--low);font-weight:700;letter-spacing:.04em;">OK</span>`
+                    : `<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:color-mix(in srgb,var(--critical) 12%,transparent);color:var(--critical);font-weight:700;letter-spacing:.04em;">MISSING</span>`;
+                const version = t.version ? `<span style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);">${t.version}</span>` : '';
+                const path = t.path ? `<span style="font-size:10px;color:var(--text-faint);font-family:var(--font-mono);margin-left:var(--sp-2);">${t.path}</span>` : '';
+
+                return `<div class="tool-row" id="tool-row-${t.name}">
+                <div class="status-dot ${dotClass}" style="margin-right:var(--sp-3);"></div>
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:var(--sp-3);">
+                        <span style="font-size:13px;font-weight:600;font-family:var(--font-mono);">${t.name}</span>
+                        ${badge}
+                        ${version}
+                    </div>
+                    <div style="margin-top:2px;">${path}</div>
+                </div>
+            </div>`;
+            }).join('');
+        } catch (e) {
+            panel.innerHTML = `<div style="padding:var(--sp-4);color:var(--critical);font-size:13px;">Failed to load: ${e.message}</div>`;
+        } finally {
+            icon.style.animation = '';
+        }
+    }
+
+    // ── Devices ────────────────────────────────────────────────────────
+    async function loadDevices() {
+        const panel = document.getElementById('devices-panel');
+        try {
+            const res = await fetch(API + '/devices');
+            const data = await res.json();
+            const devices = data.devices || [];
+
+            if (devices.length === 0) {
+                panel.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;">No ADB devices connected. Connect a device or start an emulator.</div>';
+                return;
+            }
+
+            panel.innerHTML = devices.map(d => `
+            <div class="device-row">
+                <div class="status-dot status-dot--ok"></div>
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:600;font-family:var(--font-mono);">${d.model}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">${d.serial} · ${d.transport}</div>
+                </div>
+                <span style="font-size:10px;padding:2px 6px;border-radius:3px;background:color-mix(in srgb,var(--low) 15%,transparent);color:var(--low);font-weight:700;">${d.state.toUpperCase()}</span>
+            </div>
+        `).join('');
+        } catch (e) {
+            panel.innerHTML = `<div style="padding:var(--sp-4);color:var(--critical);font-size:13px;">ADB error: ${e.message}</div>`;
+        }
+    }
+
+    async function refreshDevices() {
+        const panel = document.getElementById('devices-panel');
+        const btn = document.getElementById('refresh-devices-btn');
+        btn.disabled = true;
+        btn.textContent = 'Restarting ADB…';
+        panel.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;text-align:center;">Restarting ADB server…</div>';
+
+        try {
+            await fetch(API + '/devices/refresh', { method: 'POST' });
+        } catch (e) { }
+        finally {
+            btn.disabled = false;
+            btn.textContent = 'Refresh ADB';
+            await loadDevices();
+        }
+    }
+
+    // ── MobSF connection test ──────────────────────────────────────────
+    async function testMobSF() {
+        const label = document.getElementById('mobsf-status-label');
+        label.textContent = 'Testing…';
+        label.style.color = 'var(--text-muted)';
+
+        const url = document.getElementById('mobsf-url-input').value.trim() || 'http://127.0.0.1:8000';
+        try {
+            const res = await fetch(API + '/tools/status');
+            const data = await res.json();
+            const mobsf = (data.tools || []).find(t => t.name === 'mobsf');
+            if (mobsf && mobsf.running) {
+                label.textContent = `✓ Connected — v${mobsf.version || 'unknown'}`;
+                label.style.color = 'var(--low)';
+            } else {
+                label.textContent = `✗ Not reachable — ${mobsf?.error || 'check URL'}`;
+                label.style.color = 'var(--critical)';
+            }
+        } catch (e) {
+            label.textContent = `✗ Error: ${e.message}`;
+            label.style.color = 'var(--critical)';
+        }
+    }
+
+    // ── CSS spin keyframe ──────────────────────────────────────────────
+    const _style = document.createElement('style');
+    _style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(_style);
+
+    // ── Init ──────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSettings();
+        loadToolStatus();
+        loadDevices();
+    });
+</script>
+{% endblock %}

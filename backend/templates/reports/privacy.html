@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Privacy Audit Report — {{ project.name }}</title>
+    <style>
+        :root {
+            --bg: #0d0f12;
+            --surface: #161a20;
+            --border: #2a2f38;
+            --text: #e2e6ed;
+            --muted: #6b7280;
+            --accent: #5b8af4;
+            --critical: #ef4444;
+            --high: #f97316;
+            --medium: #eab308;
+            --low: #22c55e;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2.5rem;
+            line-height: 1.6;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: .25rem;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin: 2rem 0 .75rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: .4rem;
+        }
+
+        .meta {
+            font-size: .8rem;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
+        .badge-critical {
+            background: color-mix(in srgb, var(--critical) 15%, transparent);
+            color: var(--critical);
+            border: 1px solid var(--critical);
+        }
+
+        .badge-high {
+            background: color-mix(in srgb, var(--high) 15%, transparent);
+            color: var(--high);
+            border: 1px solid var(--high);
+        }
+
+        .badge-medium {
+            background: color-mix(in srgb, var(--medium) 15%, transparent);
+            color: var(--medium);
+            border: 1px solid var(--medium);
+        }
+
+        .badge-low {
+            background: color-mix(in srgb, var(--low) 15%, transparent);
+            color: var(--low);
+            border: 1px solid var(--low);
+        }
+
+        .badge-info {
+            background: color-mix(in srgb, var(--info) 15%, transparent);
+            color: var(--info);
+            border: 1px solid var(--info);
+        }
+
+        .summary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .stat__label {
+            font-size: .7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .stat__value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: monospace;
+        }
+
+        .stat__value.risk {
+            color: var(--high);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .8rem;
+        }
+
+        th {
+            text-align: left;
+            padding: .5rem .75rem;
+            color: var(--muted);
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        td {
+            padding: .5rem .75rem;
+            border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .note {
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: .75rem 1rem;
+            font-size: .82rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: .75rem;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Privacy &amp; Data Protection Audit</h1>
+    <p class="meta">Project: <strong>{{ project.name }}</strong> &nbsp;|&nbsp; Generated: {{
+        generated_at.strftime('%Y-%m-%d %H:%M UTC') }}</p>
+
+    <div class="summary">
+        <div>
+            <div class="stat__label">Privacy-Relevant Findings</div>
+            <div class="stat__value risk">{{ privacy_count }}</div>
+        </div>
+        <div>
+            <div class="stat__label">Total Findings</div>
+            <div class="stat__value">{{ total_findings }}</div>
+        </div>
+    </div>
+
+    <div class="note">
+        ⚠ This report highlights findings related to data privacy, sensitive data handling, PII exposure, network
+        cleartext, API key leakage, and tracking mechanisms. Review carefully for GDPR / CCPA compliance.
+    </div>
+
+    <h2>Privacy-Relevant Findings</h2>
+    {% if privacy_findings %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Severity</th>
+                <th>Tool</th>
+                <th>Location</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in privacy_findings %}
+            {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ f.title }}</strong></td>
+                <td><span class="badge badge-{{ sev }}">{{ sev|upper }}</span></td>
+                <td>{{ f.tool }}</td>
+                <td style="font-family:monospace;font-size:.75rem;word-break:break-all;">{{ f.location or '—' }}</td>
+                <td style="color:var(--muted);font-size:.75rem;">{{ f.description[:120] if f.description else '—' }}{%
+                    if f.description and f.description|length > 120 %}…{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--muted);font-style:italic;">No privacy-related findings detected.</p>
+    {% endif %}
+
+    <h2>All Findings (Reference)</h2>
+    {% if all_findings %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Severity</th>
+                <th>Tool</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in all_findings %}
+            {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ f.title }}</td>
+                <td><span class="badge badge-{{ sev }}">{{ sev|upper }}</span></td>
+                <td>{{ f.tool }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:var(--muted);font-style:italic;">No findings.</p>
+    {% endif %}
+
+    <footer>Generated by IRVES · {{ generated_at.strftime('%Y-%m-%d') }} · Confidential — Not for public distribution
+    </footer>
+</body>
+
+</html>
