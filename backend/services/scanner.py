@@ -76,12 +76,42 @@ class ScannerService:
 
         all_findings = []
 
-        if target and target.exists() and target.suffix.lower() == ".apk":
-            await self._run_apk_stage(scan_id, project_id, target, output_dir, all_findings, profile)
+        # ── Platform dispatch ────────────────────────────────────────────────────
+        if target and target.exists():
+            suffix = target.suffix.lower()
+            if suffix == ".apk":
+                await self._run_stage(
+                    scan_id, project_id, target, output_dir, all_findings, profile,
+                    analyzer_cls_path="services.tools.apk_analyzer.APKAnalyzerRunner",
+                    tool_name="apk_analyzer",
+                )
+            elif suffix == ".ipa":
+                await self._run_stage(
+                    scan_id, project_id, target, output_dir, all_findings, profile,
+                    analyzer_cls_path="services.tools.ios_analyzer.IPAAnalyzerRunner",
+                    tool_name="ios_analyzer",
+                )
+            elif suffix in (".exe", ".msi", ".dmg", ".deb", ".rpm", ".appimage"):
+                await self._run_stage(
+                    scan_id, project_id, target, output_dir, all_findings, profile,
+                    analyzer_cls_path="services.tools.desktop_analyzer.DesktopAnalyzerRunner",
+                    tool_name="desktop_analyzer",
+                )
+            else:
+                await self._broadcast(scan_id, {
+                    "type": "progress", "tool": "scanner",
+                    "message": f"No static analyzer for {suffix} — skipping",
+                })
+        elif target and (str(target).startswith("http://") or str(target).startswith("https://")):
+            await self._run_stage(
+                scan_id, project_id, target, output_dir, all_findings, profile,
+                analyzer_cls_path="services.tools.web_analyzer.WebAnalyzerRunner",
+                tool_name="web_analyzer",
+            )
         else:
             await self._broadcast(scan_id, {
-                "type": "progress", "tool": "apk_analyzer",
-                "message": "No APK target — skipping static analysis",
+                "type": "progress", "tool": "scanner",
+                "message": "No target file — skipping static analysis",
             })
 
         # ── AI Auto-Triage Phase ────────────────────────────────────────────────
@@ -126,7 +156,7 @@ class ScannerService:
                 logger.warning(f"[scanner] AI Auto-Triage failed: {e}")
                 await self._broadcast(scan_id, {
                     "type": "progress", "tool": "ai",
-                    "message": "AI skipped (Anthropic Key missing or error)",
+                    "message": "AI skipped (no API key configured or provider error)",
                 })
         else:
             await self._broadcast(scan_id, {
@@ -154,7 +184,130 @@ class ScannerService:
         logger.info(f"[scanner] scan {scan_id} complete — {len(all_findings)} findings")
         self.active_scans.pop(scan_id, None)
 
-    # ─────────────────────────────────────────────────────────────────────────
+    # ── Universal stage dispatcher ────────────────────────────────────────────
+    async def _run_stage(
+        self,
+        scan_id: str,
+        project_id: str,
+        target: Path,
+        output_dir: Path,
+        all_findings: list,
+        profile: str,
+        analyzer_cls_path: str,
+        tool_name: str,
+    ):
+        """Universal dispatcher: loads any ToolRunner by dotted import path and runs it."""
+        await self._broadcast(scan_id, {
+            "type": "tool_start", "tool": tool_name,
+            "message": f"Analyzing {target.name}…",
+        })
+        await self._update_progress(scan_id, 5)
+
+        async with get_db() as db:
+            exec_rec = await crud.create_tool_execution(db, scan_id, tool_name)
+            exec_id = str(exec_rec.id)
+            await crud.update_tool_execution(
+                db, exec_id, status=ToolExecutionStatus.RUNNING, started_at=datetime.utcnow()
+            )
+
+        def on_progress(msg: str):
+            asyncio.create_task(self._broadcast(scan_id, {
+                "type": "progress", "tool": tool_name, "message": msg,
+            }))
+
+        try:
+            module_path, cls_name = analyzer_cls_path.rsplit(".", 1)
+            import importlib
+            module = importlib.import_module(module_path)
+            runner = getattr(module, cls_name)()
+        except Exception as e:
+            logger.error(f"[scanner] Could not load {analyzer_cls_path}: {e}")
+            await self._broadcast(scan_id, {"type": "tool_error", "tool": tool_name, "message": str(e)})
+            return
+
+        try:
+            result = await asyncio.wait_for(
+                runner.run(target, output_dir, on_progress),
+                timeout=600
+            )
+        except asyncio.TimeoutError:
+            msg = f"{tool_name} analysis timed out after 10 minutes"
+            logger.warning(f"[scanner] {msg}")
+            await self._broadcast(scan_id, {"type": "tool_error", "tool": tool_name, "message": msg})
+            async with get_db() as db:
+                await crud.update_tool_execution(db, exec_id, status=ToolExecutionStatus.FAILED, error_message=msg)
+            return
+        except Exception as e:
+            logger.exception(f"[scanner] {tool_name} crashed")
+            async with get_db() as db:
+                await crud.update_tool_execution(db, exec_id, status=ToolExecutionStatus.FAILED, error_message=str(e))
+            await self._broadcast(scan_id, {"type": "tool_error", "tool": tool_name, "message": str(e)})
+            return
+
+        await self._update_progress(scan_id, 80)
+        findings_raw = []
+        malware_score = None
+        score_label = None
+        try:
+            payload = json.loads(result.output or "{}")
+            findings_raw = payload.get("findings", [])
+            malware_score = payload.get("malware_score")
+            score_label = payload.get("score_label")
+        except Exception as e:
+            logger.warning(f"[scanner] Failed to parse JSON output from {tool_name}: {e}")
+
+        sev_map = {
+            "critical": FindingSeverity.CRITICAL, "high": FindingSeverity.HIGH,
+            "medium": FindingSeverity.MEDIUM, "low": FindingSeverity.LOW,
+            "info": FindingSeverity.INFO,
+        }
+        saved = 0
+        for f in findings_raw:
+            try:
+                async with get_db() as db:
+                    finding = await crud.create_finding(
+                        db, scan_id=scan_id,
+                        title=f.get("title", "Unknown"),
+                        severity=sev_map.get(f.get("severity", "medium"), FindingSeverity.MEDIUM),
+                        tool=f.get("tool", tool_name),
+                        category=f.get("category", "General"),
+                        location=f.get("location", ""),
+                        description=f.get("description", ""),
+                        code_snippet=f.get("code_snippet", ""),
+                        owasp_mapping=f.get("owasp_mapping", ""),
+                        cwe_mapping=f.get("cwe_mapping", ""),
+                    )
+                all_findings.append(finding)
+                await self._broadcast(scan_id, {
+                    "type": "finding",
+                    "title": f.get("title"), "severity": f.get("severity", "medium"),
+                    "location": f.get("location", ""), "category": f.get("category", ""),
+                    "tool": tool_name,
+                })
+                saved += 1
+            except Exception as e:
+                logger.error(f"[scanner] Failed to save finding: {e}")
+
+        await self._update_progress(scan_id, 95)
+        async with get_db() as db:
+            metrics = {"findings": saved, "duration_ms": result.duration_ms}
+            if malware_score is not None:
+                metrics["malware_score"] = malware_score
+            if score_label is not None:
+                metrics["score_label"] = score_label
+            await crud.update_tool_execution(
+                db, exec_id,
+                status=ToolExecutionStatus.COMPLETED if result.success else ToolExecutionStatus.FAILED,
+                completed_at=datetime.utcnow(),
+                metrics=metrics,
+                error_message=result.error if not result.success else None,
+            )
+        await self._broadcast(scan_id, {
+            "type": "tool_complete", "tool": tool_name,
+            "findings_count": saved, "message": f"Completed: {saved} findings",
+        })
+
+    # ── Legacy APK stage (kept for backward compat) ───────────────────────────
     async def _run_apk_stage(
         self,
         scan_id: str,
@@ -269,8 +422,8 @@ class ScannerService:
     # ─────────────────────────────────────────────────────────────────────────
     async def _broadcast(self, scan_id: str, payload: dict):
         try:
-            from routes.events import manager
-            await manager.broadcast(scan_id, payload)
+            from services.events import event_bus
+            await event_bus.emit(scan_id, payload["type"], payload)
         except Exception as e:
             logger.debug(f"[scanner] broadcast error: {e}")
 

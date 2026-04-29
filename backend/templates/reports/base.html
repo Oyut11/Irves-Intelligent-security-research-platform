@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}IRVES Report{% endblock %}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-center {
+                content: "IRVES Security Intelligence | Page " counter(page) " of " counter(pages);
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1a1a1a;
+            line-height: 1.6;
+            font-size: 11pt;
+            margin: 0;
+            padding: 0;
+        }
+        h1 { font-size: 24pt; border-bottom: 2px solid #000; padding-bottom: 5px; margin-top: 0; }
+        h2 { font-size: 16pt; color: #333; margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+        h3 { font-size: 13pt; color: #444; }
+        .header { margin-bottom: 3em; }
+        .metadata { font-size: 10pt; color: #555; background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 2em; }
+        .metadata div { margin-bottom: 5px; }
+        .metadata strong { color: #222; display: inline-block; width: 120px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; margin-bottom: 2em; page-break-inside: avoid; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f4f4f4; font-weight: 600; }
+        .severity { padding: 4px 8px; border-radius: 3px; font-weight: bold; font-size: 9pt; text-transform: uppercase; }
+        .sev-critical { background: #fee2e2; color: #b91c1c; }
+        .sev-high { background: #ffedd5; color: #c2410c; }
+        .sev-medium { background: #fef9c3; color: #a16207; }
+        .sev-low { background: #e0f2fe; color: #0369a1; }
+        .sev-info { background: #f1f5f9; color: #475569; }
+        .finding-card { border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 1.5em; page-break-inside: auto; }
+        .finding-title { margin-top: 0; margin-bottom: 10px; }
+        .finding-meta { font-size: 9pt; color: #666; margin-bottom: 10px; }
+        .finding-desc { background: #fafafa; padding: 10px; border-radius: 3px; border-left: 3px solid #ccc; font-size: 10pt; white-space: pre-wrap; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; background: #eee; font-size: 8pt; color: #333; margin-right: 5px; }
+        .summary-stats { display: flex; gap: 15px; margin-bottom: 2em; }
+        .stat-box { border: 1px solid #ddd; padding: 15px; text-align: center; flex: 1; border-top: 3px solid #666; }
+        .stat-num { font-size: 24pt; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 9pt; text-transform: uppercase; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{% block report_title %}IRVES Report{% endblock %}</h1>
+    </div>
+
+    <div class="metadata">
+        <div><strong>Project:</strong> {{ project.name }} / {{ project.package_name }}</div>
+        <div><strong>Scan ID:</strong> {{ scan_id or 'Aggregate/Unknown' }}</div>
+        <div><strong>Date Generated:</strong> {{ generated_at.strftime('%Y-%m-%d %H:%M UTC') }}</div>
+        <div><strong>Total Findings:</strong> {{ total_findings }}</div>
+    </div>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

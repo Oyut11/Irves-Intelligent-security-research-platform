@@ -9,7 +9,7 @@
             <p class="page-header__subtitle" id="scan-status-subtitle">Initializing pipeline...</p>
         </div>
         <div style="display:flex;gap:var(--sp-3);">
-            <button class="btn btn--ghost" id="cancel-scan-live-btn" onclick="cancelScan()">Cancel Scan</button>
+            
             <a href="#" class="btn btn--primary" id="view-results-btn" style="opacity:0.4;pointer-events:none;">
                 View Full Results
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -37,33 +37,51 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-6);">
 
-            <!-- Pipeline -->
+            <!-- AST Progress Tree (Phase 2) -->
             <div>
                 <div class="panel">
-                    <div class="panel__header">Pipeline</div>
-                    <div style="padding:var(--sp-4);" id="pipeline-list">
-
-                        {% set stages = [
-                        ("manifest", "queued", "Manifest Checks", "Waiting..."),
-                        ("pattern_scan", "queued", "Pattern Scan", "Waiting..."),
-                        ("bytecode", "queued", "Bytecode Analysis","Waiting..."),
-                        ("ai", "queued", "AI Auto-Triage", "Waiting..."),
-                        ("complete", "queued", "Finalizing", "Waiting...")
-                        ] %}
-
-                        {% for stage_id, state, name, detail in stages %}
-                        <div class="pipeline-step pipeline-step--{{ state }}" id="stage-{{ stage_id }}">
-                            <div class="pipeline-step__status-icon" aria-label="{{ state }}">
-                                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.25"
-                                        opacity="0.3" />
-                                </svg>
-                            </div>
-                            <div class="pipeline-step__name">{{ name }}</div>
-                            <div class="pipeline-step__detail" id="stage-{{ stage_id }}-detail">{{ detail }}</div>
+                    <div class="panel__header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>📊 Analysis Progress Tree</span>
+                        <button class="btn btn--sm btn--ghost" id="whats-next-btn" onclick="loadSuggestedTasks()" style="display:none;">
+                            💡 What's Next?
+                        </button>
+                    </div>
+                    <div style="padding:var(--sp-4);max-height:400px;overflow-y:auto;" id="ast-tree-container">
+                        <!-- AST Tree loaded via JS -->
+                        <div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;text-align:center;" id="ast-loading">
+                            Loading analysis tree...
                         </div>
-                        {% endfor %}
 
+                        <!-- Phase Template (hidden, cloned by JS) -->
+                        <div id="phase-template" style="display:none;">
+                            <div class="ast-phase" style="margin-bottom:var(--sp-4);">
+                                <div class="ast-phase-header" style="display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) 0;font-weight:600;font-size:13px;cursor:pointer;" onclick="togglePhase(this)">
+                                    <span class="ast-phase-icon">▶</span>
+                                    <span class="ast-phase-name"></span>
+                                    <span class="ast-phase-badge" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:12px;background:var(--surface);font-weight:500;"></span>
+                                </div>
+                                <div class="ast-phase-tasks" style="padding-left:var(--sp-4);display:none;">
+                                    <!-- Tasks injected here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Task Template -->
+                        <div id="task-template" style="display:none;">
+                            <div class="ast-task" style="display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-1) 0;font-size:12px;border-left:2px solid transparent;padding-left:var(--sp-2);margin:2px 0;">
+                                <span class="ast-task-status"></span>
+                                <span class="ast-task-name" style="flex:1;"></span>
+                                <span class="ast-task-priority" style="font-size:10px;padding:1px 6px;border-radius:8px;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- What's Next Panel -->
+                <div class="panel" id="whats-next-panel" style="margin-top:var(--sp-4);display:none;">
+                    <div class="panel__header">💡 Suggested Next Steps</div>
+                    <div style="padding:var(--sp-4);" id="suggested-tasks-list">
+                        <!-- Suggestions loaded via JS -->
                     </div>
                 </div>
             </div>
@@ -83,21 +101,87 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Legacy Pipeline (compact view) -->
+                <div class="panel" style="margin-top:var(--sp-4);">
+                    <div class="panel__header" style="font-size:11px;color:var(--text-muted);">Pipeline Status</div>
+                    <div style="padding:var(--sp-3);" id="pipeline-list">
+                        {% set stages = [
+                        ("manifest", "queued", "Manifest", "Waiting..."),
+                        ("pattern_scan", "queued", "Patterns", "Waiting..."),
+                        ("bytecode", "queued", "Bytecode","Waiting..."),
+                        ("ai", "queued", "AI Triage", "Waiting...")
+                        ] %}
+                        <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;">
+                        {% for stage_id, state, name, detail in stages %}
+                        <div class="pipeline-step pipeline-step--{{ state }}" id="stage-{{ stage_id }}"
+                             style="font-size:11px;padding:var(--sp-1) var(--sp-2);background:var(--surface);border-radius:var(--radius);"
+                             {% if stage_id == 'bytecode' and project and project.source_type != 'upload' %}style="display:none;"{% endif %}>
+                            <span class="pipeline-step__name">{{ name }}</span>
+                        </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
     </div>
+
+    <!-- Full Scan: Runtime Phase Handoff Panel (hidden; shown after static analysis finishes) -->
+    <div id="runtime-handoff-panel" style="display:none; margin-top: var(--sp-6);">
+        <div class="card" style="
+            border: 1.5px solid var(--accent);
+            background: rgba(99,102,241,0.06);
+            padding: var(--sp-6);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-4);
+        ">
+            <div style="display:flex; align-items:center; gap: var(--sp-3);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="color:var(--accent);flex-shrink:0">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="rgba(99,102,241,0.15)"/>
+                    <path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                    <div style="font-weight:600; font-size:14px; color:var(--text-primary);">Static Analysis Complete</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;" id="handoff-summary">Full Scan — Phase 1 done. Phase 2: Runtime Instrumentation is ready.</div>
+                </div>
+            </div>
+            <div style="font-size:13px; color:var(--text-muted); line-height:1.6; padding-left: 32px;">
+                The static analysis phase has finished. You can now proceed to the
+                <strong style="color:var(--text-primary);">Runtime Workspace</strong> to instrument
+                the app using Frida or Xposed. Select which functions, APIs, or errors to examine.
+            </div>
+            <div style="display:flex; align-items:center; gap:var(--sp-3); padding-left:32px;">
+                <button class="btn btn--primary" id="proceed-runtime-btn">
+                    ▶ Proceed to Runtime Instrumentation
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="margin-left:4px">
+                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <a id="skip-runtime-link" href="#" style="font-size:12px; color:var(--text-muted);text-decoration:underline;">Skip — view results only</a>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // Read scan_id and project_id from backend first, fallback to URL params
+    // Read scan_id, project_id and phase from URL params / Jinja2 backend
     const _params = new URLSearchParams(window.location.search);
     const _scanId = "{{ scan_id or '' }}" || _params.get('scan_id') || '';
     const _projectId = "{{ project_id or '' }}" || _params.get('project_id') || '';
+    const _isFullScan = _params.get('phase') === 'full'; // Full Scan flag
 
     // Update title
     if (_scanId) {
-        document.getElementById('live-scan-title').textContent = `Scan in Progress (${_scanId.slice(0, 8)})`;
+        document.getElementById('live-scan-title').textContent = _isFullScan
+            ? `Full Scan — Phase 1: Static Analysis (${_scanId.slice(0, 8)})`
+            : `Scan in Progress (${_scanId.slice(0, 8)})`;
+        document.getElementById('scan-status-subtitle').textContent = _isFullScan
+            ? 'Running static analysis… Runtime phase will follow.'
+            : 'Initializing pipeline...';
     }
 
     // Wire cancel button
@@ -108,11 +192,52 @@
     }
 
     // Wire View Results link once done
-    function onScanComplete() {
+    function onScanComplete(findingsCount) {
         const btn = document.getElementById('view-results-btn');
         btn.href = `/dashboard?project=${_projectId}`;
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
+
+        if (_isFullScan) {
+            // Full Scan: show the runtime handoff panel — do NOT auto-navigate to runtime.
+            // This prevents the race condition where static + runtime load simultaneously.
+            const handoff = document.getElementById('runtime-handoff-panel');
+            const summary = document.getElementById('handoff-summary');
+            const proceedBtn = document.getElementById('proceed-runtime-btn');
+            const skipLink = document.getElementById('skip-runtime-link');
+
+            if (summary && findingsCount !== undefined) {
+                summary.textContent = `Phase 1 complete — ${findingsCount} finding${findingsCount !== 1 ? 's' : ''} found. Phase 2: Runtime Instrumentation is ready.`;
+            }
+            if (handoff) handoff.style.display = 'block';
+
+            proceedBtn?.addEventListener('click', () => {
+                // Navigate to runtime workspace with the scan context.
+                // The static analysis results are already persisted in the DB.
+                const targetUrl = `/runtime?project=${_projectId}&from_scan=${_scanId}`;
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'navigate', href: targetUrl }, '*');
+                } else {
+                    window.location.href = targetUrl;
+                }
+            });
+            skipLink.href = `/dashboard?project=${_projectId}`;
+        }
+
+        // Automatic refresh logic: reload once to ensure final state is locked in.
+        // Only refresh if findingsCount is present, meaning the scan just finished while we were watching.
+        const urlParams = new URLSearchParams(window.location.search);
+        if (findingsCount !== undefined && !urlParams.has('refreshed')) {
+            setTimeout(() => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('refreshed', 'true');
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'navigate', href: url.pathname + url.search }, '*');
+                } else {
+                    window.location.href = url.toString();
+                }
+            }, 1000);
+        }
     }
 
     // Connect to SSE stream if we have a valid scan_id
@@ -156,7 +281,9 @@
 
             if (evtType === 'init') {
                 if (pdata.status === 'completed') {
-                    document.getElementById('scan-status-subtitle').innerText = '✓ Scan already completed';
+                    document.getElementById('scan-status-subtitle').innerText = _isFullScan
+                        ? '✓ Phase 1 already complete — proceed to Runtime Instrumentation'
+                        : '✓ Scan already completed';
                     document.getElementById('progress-pct').innerText = '100%';
                     document.getElementById('progress-fill').style.width = '100%';
                     setStage('manifest', 'completed', 'Complete');
@@ -175,7 +302,10 @@
                 document.getElementById('scan-status-subtitle').innerText = pdata.message || 'Running…';
             } else if (evtType === 'tool_start') {
                 setStage(pdata.tool, 'running', pdata.message || 'Running…');
-                setStage('apk_analyzer', 'running', pdata.message || 'Running…');
+                if (pdata.tool === 'manifest') {
+                    // For mobile apps, manifest is part of apk_analyzer context usually
+                    setStage('apk_analyzer', 'running', pdata.message || 'Running…');
+                }
             } else if (evtType === 'tool_complete') {
                 setStage(pdata.tool, 'completed', `✓ ${pdata.findings_count || 0} items`);
                 if (pdata.tool === 'apk_analyzer') {
@@ -195,12 +325,14 @@
                 const stage = inferStage(pdata.message);
                 if (stage) setStage(stage, 'running', pdata.message);
             } else if (evtType === 'complete') {
-                document.getElementById('scan-status-subtitle').innerText = '✓ Scan complete — ' + (pdata.findings_count || 0) + ' findings';
+                document.getElementById('scan-status-subtitle').innerText = _isFullScan
+                    ? '✓ Phase 1 complete — ' + (pdata.findings_count || 0) + ' findings. Proceed to Runtime when ready.'
+                    : '✓ Scan complete — ' + (pdata.findings_count || 0) + ' findings';
                 document.getElementById('progress-pct').innerText = '100%';
                 document.getElementById('progress-fill').style.width = '100%';
                 setStage('complete', 'completed', 'Done');
-                document.getElementById('progress-eta').innerText = 'Complete';
-                onScanComplete();
+                document.getElementById('progress-eta').innerText = _isFullScan ? 'Phase 1 Done' : 'Complete';
+                onScanComplete(pdata.findings_count || 0);
                 evtSource.close();
             } else if (evtType === 'finding') {
                 const list = document.getElementById('live-findings-list');
@@ -239,8 +371,225 @@
         evtSource.onerror = function () {
             console.warn('SSE connection lost');
         };
+
+        // Load AST tree on page load
+        loadASTTree();
+
     } else {
         document.getElementById('scan-status-subtitle').textContent = 'No scan ID — start a scan from the New Scan page.';
+    }
+
+    // ── AST Tree Functions (Phase 2) ────────────────────────────────────
+
+    let astData = null;
+
+    async function loadASTTree() {
+        if (!_scanId) return;
+
+        try {
+            const response = await fetch(`/api/scans/${_scanId}/ast/tree`);
+            if (!response.ok) throw new Error('Failed to load AST');
+
+            astData = await response.json();
+            renderASTTree(astData);
+
+            // Show What's Next button if there are pending tasks
+            const hasPending = astData.progress && astData.progress.by_status && astData.progress.by_status.pending > 0;
+            document.getElementById('whats-next-btn').style.display = hasPending ? 'inline-flex' : 'none';
+
+        } catch (err) {
+            console.warn('[AST] Could not load tree:', err);
+            document.getElementById('ast-loading').textContent = 'Analysis tree not available';
+        }
+    }
+
+    function renderASTTree(data) {
+        const container = document.getElementById('ast-tree-container');
+        const loadingEl = document.getElementById('ast-loading');
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        // Clear existing content except templates and loading
+        const templates = container.querySelectorAll('[id$="-template"]');
+        const toRemove = [];
+        for (const child of container.children) {
+            if (!child.id || (!child.id.endsWith('-template') && child.id !== 'ast-loading')) {
+                toRemove.push(child);
+            }
+        }
+        toRemove.forEach(el => el.remove());
+
+        if (!data.phases) {
+            container.innerHTML += '<div style="padding:var(--sp-4);color:var(--text-muted);text-align:center;">No analysis tasks available</div>';
+            return;
+        }
+
+        // Phase order
+        const phaseOrder = ['static', 'dynamic', 'network', 'exploit'];
+
+        for (const phaseKey of phaseOrder) {
+            const phase = data.phases[phaseKey];
+            if (!phase) continue;
+
+            const phaseEl = cloneTemplate('phase-template');
+            phaseEl.querySelector('.ast-phase-name').textContent = getPhaseEmoji(phaseKey) + ' ' + phase.name;
+
+            // Calculate phase status
+            const isLocked = phaseKey !== 'static' && !isPhaseUnlocked(data, phaseKey);
+            const isComplete = phase.completed === phase.total;
+            const isInProgress = data.current_phase === phaseKey;
+
+            const badge = phaseEl.querySelector('.ast-phase-badge');
+            if (isLocked) {
+                badge.textContent = '🔒 Locked';
+                badge.style.background = 'var(--surface-raised)';
+                badge.style.color = 'var(--text-faint)';
+            } else if (isComplete) {
+                badge.textContent = '✓ Complete';
+                badge.style.background = 'var(--low)';
+                badge.style.color = 'var(--text-primary)';
+            } else if (isInProgress) {
+                badge.textContent = '▶ Running';
+                badge.style.background = 'var(--accent)';
+                badge.style.color = 'white';
+            } else {
+                badge.textContent = `${phase.completed}/${phase.total}`;
+            }
+
+            // Expand if current phase or has running tasks
+            const tasksContainer = phaseEl.querySelector('.ast-phase-tasks');
+            if (isInProgress || (phaseKey === 'static' && !isComplete)) {
+                phaseEl.querySelector('.ast-phase-icon').textContent = '▼';
+                tasksContainer.style.display = 'block';
+            }
+
+            // Render tasks
+            for (const task of phase.tasks) {
+                const taskEl = cloneTemplate('task-template');
+                taskEl.querySelector('.ast-task-name').textContent = task.name;
+
+                // Status icon
+                const statusEl = taskEl.querySelector('.ast-task-status');
+                statusEl.textContent = getStatusIcon(task.status);
+
+                // Priority badge
+                const priorityEl = taskEl.querySelector('.ast-task-priority');
+                if (task.priority === 'critical' || task.priority === 'high') {
+                    priorityEl.textContent = task.priority.toUpperCase();
+                    priorityEl.style.background = task.priority === 'critical' ? 'var(--critical)' : 'var(--high)';
+                    priorityEl.style.color = 'white';
+                } else {
+                    priorityEl.style.display = 'none';
+                }
+
+                // Styling based on status
+                if (task.status === 'completed') {
+                    taskEl.style.opacity = '0.7';
+                    taskEl.querySelector('.ast-task-name').style.textDecoration = 'line-through';
+                } else if (task.status === 'in_progress') {
+                    taskEl.style.borderLeftColor = 'var(--accent)';
+                    taskEl.style.background = 'rgba(99,102,241,0.05)';
+                } else if (task.status === 'blocked' || isLocked) {
+                    taskEl.style.opacity = '0.5';
+                }
+
+                tasksContainer.appendChild(taskEl);
+            }
+
+            container.appendChild(phaseEl);
+        }
+    }
+
+    function cloneTemplate(templateId) {
+        const template = document.getElementById(templateId);
+        if (!template) return document.createElement('div');
+        return template.firstElementChild.cloneNode(true);
+    }
+
+    function getPhaseEmoji(phase) {
+        const emojis = {
+            'static': '📁',
+            'dynamic': '⚡',
+            'network': '🌐',
+            'exploit': '🎯'
+        };
+        return emojis[phase] || '📋';
+    }
+
+    function getStatusIcon(status) {
+        const icons = {
+            'pending': '○',
+            'in_progress': '▶',
+            'completed': '✓',
+            'failed': '✗',
+            'blocked': '⊘',
+            'skipped': '⊘'
+        };
+        return icons[status] || '○';
+    }
+
+    function isPhaseUnlocked(data, phaseKey) {
+        // Simple logic: previous phase must be complete
+        const phaseOrder = ['static', 'dynamic', 'network', 'exploit'];
+        const idx = phaseOrder.indexOf(phaseKey);
+        if (idx <= 0) return true;
+
+        const prevPhase = data.phases[phaseOrder[idx - 1]];
+        return prevPhase && prevPhase.completed >= prevPhase.total * 0.5; // 50% complete to unlock
+    }
+
+    function togglePhase(header) {
+        const tasksContainer = header.nextElementSibling;
+        const icon = header.querySelector('.ast-phase-icon');
+        if (tasksContainer.style.display === 'none') {
+            tasksContainer.style.display = 'block';
+            icon.textContent = '▼';
+        } else {
+            tasksContainer.style.display = 'none';
+            icon.textContent = '▶';
+        }
+    }
+
+    async function loadSuggestedTasks() {
+        if (!_scanId) return;
+
+        const panel = document.getElementById('whats-next-panel');
+        const list = document.getElementById('suggested-tasks-list');
+
+        try {
+            const response = await fetch(`/api/scans/${_scanId}/suggested-tasks`);
+            if (!response.ok) throw new Error('Failed to load suggestions');
+
+            const data = await response.json();
+
+            if (data.suggestions.length === 0) {
+                list.innerHTML = '<div style="padding:var(--sp-3);color:var(--text-muted);text-align:center;">No pending tasks. Analysis may be complete!</div>';
+            } else {
+                list.innerHTML = '';
+                for (const task of data.suggestions) {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding:var(--sp-3);background:var(--surface);border-radius:var(--radius);margin-bottom:var(--sp-2);';
+                    item.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-1);">
+                            <strong style="font-size:13px;">${task.name}</strong>
+                            <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:${task.priority === 'critical' ? 'var(--critical)' : 'var(--high)'};color:white;">${task.priority.toUpperCase()}</span>
+                        </div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-bottom:var(--sp-2);">${task.description}</div>
+                        <div style="display:flex;gap:var(--sp-2);align-items:center;font-size:11px;color:var(--text-faint);">
+                            <span>${getPhaseEmoji(task.phase)} ${task.phase}</span>
+                            ${task.tool_name ? `<span>• Tool: ${task.tool_name}</span>` : ''}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                }
+            }
+
+            panel.style.display = 'block';
+
+        } catch (err) {
+            console.warn('[AST] Could not load suggestions:', err);
+            list.innerHTML = '<div style="padding:var(--sp-3);color:var(--critical);">Failed to load suggestions</div>';
+            panel.style.display = 'block';
+        }
     }
 </script>
 {% endblock %}

@@ -88,6 +88,8 @@ class ReportGenerator:
             return await self._generate_sbom(project, scan_id, findings, fmt, report_name, generated_at)
         elif template == "privacy":
             return await self._generate_privacy(project, scan_id, findings, fmt, report_name, generated_at)
+        elif template == "executive":
+            return await self._generate_executive(project, scan_id, findings, severity_counts, fmt, report_name, generated_at)
         else:
             raise ValueError(f"Unknown template: {template}")
 
@@ -147,7 +149,7 @@ class ReportGenerator:
         """Software Bill of Materials security report."""
         code_findings = [f for f in findings if f.tool in ("jadx", "apktool")]
         runtime_findings = [f for f in findings if f.tool in ("frida", "mitmproxy")]
-        static_findings = [f for f in findings if f.tool == "mobsf"]
+        static_findings = [f for f in findings if f.tool in ("apk_analyzer", "ios_analyzer")]
 
         ctx = dict(
             project=project,
@@ -182,6 +184,24 @@ class ReportGenerator:
             generated_at=generated_at,
         )
         return self._render(ctx, "privacy.html", fmt, report_name)
+
+    # ── Executive Summary ──────────────────────────────────────────────────────
+
+    async def _generate_executive(self, project, scan_id, findings, severity_counts, fmt, report_name, generated_at) -> Path:
+        """Non-technical high-level reporting for leadership / compliance officers."""
+        critical_high = [f for f in findings if str(f.severity.value if hasattr(f.severity, "value") else f.severity).lower() in ("critical", "high")]
+        
+        ctx = dict(
+            project=project,
+            scan_id=scan_id,
+            findings=findings,
+            total_findings=len(findings),
+            severity_counts=severity_counts,
+            critical_high_count=len(critical_high),
+            top_findings=critical_high[:5], # Only highlights top 5
+            generated_at=generated_at,
+        )
+        return self._render(ctx, "executive.html", fmt, report_name)
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 

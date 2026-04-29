@@ -3,12 +3,13 @@ IRVES — Analysis Routes (Phase 6 complete)
 AI reasoning layer for per-finding explanation, attack path, and fix guidance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request as FastAPIRequest
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import json
 import logging
+import hashlib
 
 from database import get_db_session, get_finding, update_finding_status
 from models.finding import FindingCreate, FindingResponse, FindingUpdate
@@ -117,10 +118,12 @@ async def analyze_finding(
     if not finding:
         raise HTTPException(status_code=404, detail="Finding not found")
 
-    if not settings.ANTHROPIC_API_KEY:
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    is_local = settings.AI_PROVIDER in ("ollama", "local") or any(s in (settings.AI_MODEL or "").lower() for s in ("ollama", "local", "localhost", "127.0.0.1"))
+    if not key and not is_local and not settings.AI_API_BASE:
         raise HTTPException(
             status_code=503,
-            detail="AI analysis not configured. Set ANTHROPIC_API_KEY in .env"
+            detail="AI analysis not configured. Set an API key in Settings → AI Reasoning Layer"
         )
 
     finding_dict = {
@@ -145,7 +148,7 @@ async def analyze_finding(
 
     # Persist analysis back to finding record
     from datetime import datetime
-    finding.ai_analysis = analysis.get("explanation")
+    finding.ai_analysis = json.dumps(analysis)
     finding.ai_attack_path = analysis.get("attack_path")
     finding.ai_fix_guidance = analysis.get("fix")
     finding.updated_at = datetime.utcnow()
@@ -170,8 +173,10 @@ async def stream_finding_analysis(
     if not finding:
         raise HTTPException(status_code=404, detail="Finding not found")
 
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    is_local = settings.AI_PROVIDER in ("ollama", "local") or any(s in (settings.AI_MODEL or "").lower() for s in ("ollama", "local", "localhost", "127.0.0.1"))
+    if not key and not is_local and not settings.AI_API_BASE:
+        raise HTTPException(status_code=503, detail="AI not configured. Set an API key in Settings → AI Reasoning Layer")
 
     finding_dict = {
         "title": finding.title,
@@ -200,13 +205,24 @@ async def stream_finding_analysis(
     )
 
 
+def _get_user_id(request: FastAPIRequest) -> str:
+    """Generate a consistent user ID from request information."""
+    # Use IP address and User-Agent to create a consistent user ID
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
+    # Create a hash for privacy while maintaining consistency
+    user_string = f"{client_ip}:{user_agent}"
+    return hashlib.md5(user_string.encode()).hexdigest()[:12]
+
 @router.post("/ask")
 async def ask_irves(
     payload: dict,
+    request: FastAPIRequest,
     db: AsyncSession = Depends(get_db_session),
 ):
     """
-    Contextual AI chat anchored to a specific finding.
+    Intelligent contextual AI chat anchored to a specific finding with conversation memory.
 
     Body: { "finding_id": "...", "question": "How can I fix this?" }
     """
@@ -231,12 +247,19 @@ async def ask_irves(
         "description": finding.description,
         "code_snippet": finding.code_snippet,
         "owasp_mapping": finding.owasp_mapping,
+        "cwe_mapping": finding.cwe_mapping,
+        "tool": finding.tool,
         "ai_analysis": finding.ai_analysis,
+        "ai_attack_path": finding.ai_attack_path,
         "ai_fix_guidance": finding.ai_fix_guidance,
     }
 
+    # Generate user ID and session ID for conversation tracking
+    user_id = _get_user_id(request)
+    session_id = f"finding_{finding_id}"
+
     try:
-        response = await ai_service.chat(question, context)
+        response = await ai_service.chat(question, context, user_id, session_id)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
@@ -246,6 +269,10 @@ async def ask_irves(
     return {
         "response": response,
         "finding_id": finding_id,
+        "user_context": {
+            "expertise_level": ai_service.conversation_memory.get_context(user_id, session_id).user_expertise_level,
+            "interaction_count": ai_service.conversation_memory.get_context(user_id, session_id).interaction_count
+        }
     }
 
 
@@ -273,7 +300,6 @@ def _check_rate_limit(client_ip: str, max_req: int = 10, window_sec: int = 60) -
     _rate_limit_store[client_ip] = timestamps
 
 
-from fastapi import Request as FastAPIRequest
 
 @router.post("/finding/{finding_id}")
 async def analyze_finding_alias(
@@ -303,7 +329,7 @@ async def chat_with_finding(
     db: AsyncSession = Depends(get_db_session),
 ):
     """
-    Streaming chat scoped to a specific finding.
+    Intelligent streaming chat scoped to a specific finding with conversation memory and adaptive responses.
     Returns SSE stream for the frontend to consume via ReadableStream.
     """
     client_ip = request.client.host if request.client else "unknown"
@@ -313,8 +339,10 @@ async def chat_with_finding(
     if not finding:
         raise HTTPException(status_code=404, detail="Finding not found")
 
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    is_local = settings.AI_PROVIDER in ("ollama", "local") or any(s in (settings.AI_MODEL or "").lower() for s in ("ollama", "local", "localhost", "127.0.0.1"))
+    if not key and not is_local and not settings.AI_API_BASE:
+        raise HTTPException(status_code=503, detail="AI not configured. Set an API key in Settings → AI Reasoning Layer")
 
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
@@ -330,13 +358,177 @@ async def chat_with_finding(
         "description": finding.description,
         "code_snippet": finding.code_snippet,
         "owasp_mapping": finding.owasp_mapping,
+        "cwe_mapping": finding.cwe_mapping,
+        "tool": finding.tool,
         "ai_analysis": finding.ai_analysis,
+        "ai_attack_path": finding.ai_attack_path,
         "ai_fix_guidance": finding.ai_fix_guidance,
     }
 
+    # Generate user ID and session ID for intelligent conversation tracking
+    user_id = _get_user_id(request)
+    session_id = f"finding_{finding_id}"
+
     async def event_gen():
         try:
-            async for chunk in ai_service.stream_chat(payload.message, context):
+            # Get user context for metadata
+            user_context = ai_service.conversation_memory.get_context(user_id, session_id)
+            
+            # Send initial context metadata
+            yield f"data: {json.dumps({'metadata': {'expertise_level': user_context.user_expertise_level, 'mood': user_context.current_mood, 'interaction_count': user_context.interaction_count}})}\n\n"
+            
+            # Stream intelligent response
+            async for chunk in ai_service.stream_chat(payload.message, context, user_id, session_id):
+                yield f"data: {json.dumps({'token': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+class RuntimeChatRequest(BaseModel):
+    message: str
+    script_context: str = ""
+    logs: str = ""
+    finding_id: Optional[str] = None
+    runtime_state: Optional[dict] = {}
+
+@router.post("/runtime-chat")
+async def runtime_chat(
+    payload: RuntimeChatRequest,
+    request: FastAPIRequest,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Intelligent streaming chat tailored for Frida scripting and runtime analysis with user context.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(client_ip)
+
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    is_local = settings.AI_PROVIDER in ("ollama", "local") or any(s in (settings.AI_MODEL or "").lower() for s in ("ollama", "local", "localhost", "127.0.0.1"))
+    if not key and not is_local and not settings.AI_API_BASE:
+        raise HTTPException(status_code=503, detail="AI not configured. Set an API key in Settings → AI Reasoning Layer")
+
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="message is required")
+
+    finding_context = None
+    if payload.finding_id:
+        finding = await get_finding(db, payload.finding_id)
+        if finding:
+            finding_context = {
+                "title": finding.title,
+                "severity": finding.severity.value if hasattr(finding.severity, "value") else finding.severity,
+                "category": finding.category,
+                "location": finding.location,
+                "description": finding.description,
+                "code_snippet": finding.code_snippet,
+                "owasp_mapping": finding.owasp_mapping,
+                "ai_analysis": finding.ai_analysis,
+                "ai_fix_guidance": finding.ai_fix_guidance,
+            }
+
+    # Generate user context for Frida session
+    user_id = _get_user_id(request)
+    session_id = "frida_runtime"
+
+    # Update user context for Frida-specific expertise detection
+    ai_service.conversation_memory.update_user_context(user_id, payload.message, session_id)
+
+    async def event_gen():
+        try:
+            # Send user context metadata
+            user_context = ai_service.conversation_memory.get_context(user_id, session_id)
+            yield f"data: {json.dumps({'metadata': {'expertise_level': user_context.user_expertise_level, 'frida_session': True}})}\n\n"
+
+            async for chunk in ai_service.stream_frida_chat(
+                question=payload.message,
+                script_context=payload.script_context,
+                logs=payload.logs,
+                finding_context=finding_context,
+                runtime_state=payload.runtime_state,
+                user_id=user_id,
+                session_id=session_id,
+            ):
+                yield f"data: {json.dumps({'token': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+class NetworkChatRequest(BaseModel):
+    message: str
+    packet_data: dict
+    finding_id: Optional[str] = None
+
+@router.post("/network-chat")
+async def network_chat(
+    payload: NetworkChatRequest,
+    request: FastAPIRequest,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Intelligent streaming chat tailored for network and API traversal analysis with user context.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(client_ip)
+
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    is_local = settings.AI_PROVIDER in ("ollama", "local") or any(s in (settings.AI_MODEL or "").lower() for s in ("ollama", "local", "localhost", "127.0.0.1"))
+    if not key and not is_local and not settings.AI_API_BASE:
+        raise HTTPException(status_code=503, detail="AI not configured. Set an API key in Settings → AI Reasoning Layer")
+
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="message is required")
+
+    finding_context = None
+    if payload.finding_id:
+        finding = await get_finding(db, payload.finding_id)
+        if finding:
+            finding_context = {
+                "title": finding.title,
+                "severity": finding.severity.value if hasattr(finding.severity, "value") else finding.severity,
+                "category": finding.category,
+                "location": finding.location,
+                "description": finding.description,
+                "code_snippet": finding.code_snippet,
+                "owasp_mapping": finding.owasp_mapping,
+                "ai_analysis": finding.ai_analysis,
+                "ai_fix_guidance": finding.ai_fix_guidance,
+            }
+
+    # Generate user context for network analysis session
+    user_id = _get_user_id(request)
+    session_id = "network_analysis"
+
+    # Update user context for network-specific expertise detection
+    ai_service.conversation_memory.update_user_context(user_id, payload.message, session_id)
+
+    async def event_gen():
+        try:
+            # Send user context metadata
+            user_context = ai_service.conversation_memory.get_context(user_id, session_id)
+            yield f"data: {json.dumps({'metadata': {'expertise_level': user_context.user_expertise_level, 'network_session': True}})}\n\n"
+
+            async for chunk in ai_service.stream_network_chat(
+                question=payload.message,
+                packet_data=payload.packet_data,
+                finding_context=finding_context,
+                user_id=user_id,
+                session_id=session_id,
+            ):
                 yield f"data: {json.dumps({'token': chunk})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -371,5 +563,78 @@ async def set_finding_status(
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Finding not found")
+    return {"status": "success", "new_status": updated.status.value}
 
-    return {"finding_id": finding_id, "status": updated.status.value}
+class ProjectSummaryRequest(BaseModel):
+    project_id: str
+    message: str
+
+@router.post("/project-summary")
+async def project_summary_chat(
+    payload: ProjectSummaryRequest,
+    request: FastAPIRequest,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Stream a high-level executive vulnerability summary for all project findings.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(client_ip)
+
+    from database.crud import get_scans_by_project, get_findings_by_scan, get_project
+    scans = await get_scans_by_project(db, payload.project_id)
+    project = await get_project(db, payload.project_id)
+    project_platform = project.platform if project else "General"
+    
+    raw_findings = []
+    if scans:
+        # Get findings from latest scan
+        latest_scan = scans[0]
+        findings_list = await get_findings_by_scan(db, latest_scan.id, limit=5000)
+        
+        # Group identical findings to compress prompt length while retaining scale context
+        grouped_findings = {}
+        for f in findings_list:
+            sev = f.severity.value.lower() if hasattr(f.severity, "value") else str(f.severity).lower()
+            key = (f.title, sev, f.category)
+            if key not in grouped_findings:
+                grouped_findings[key] = {"title": f.title, "severity": sev, "category": f.category, "count": 1}
+            else:
+                grouped_findings[key]["count"] += 1
+                
+        # Sort so critical issues appear first
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+        grouped_list = list(grouped_findings.values())
+        grouped_list.sort(key=lambda x: severity_order.get(x["severity"], 99))
+        
+        for grouped in grouped_list:
+            raw_findings.append(grouped)
+
+    key = settings.AI_API_KEY or settings.ANTHROPIC_API_KEY or settings.OPENAI_API_KEY or settings.GEMINI_API_KEY
+    ai_model_lower = (settings.AI_MODEL or "").lower()
+    if not key and "ollama" not in ai_model_lower and "local" not in ai_model_lower and not settings.AI_API_BASE:
+         raise HTTPException(status_code=503, detail="AI API provider not configured")
+
+    user_id = _get_user_id(request)
+    session_id = f"project_{payload.project_id}"
+
+    async def event_gen():
+        try:
+            async for chunk in ai_service.stream_project_summary(
+                findings=raw_findings,
+                user_message=payload.message,
+                user_id=user_id,
+                session_id=session_id,
+                project_platform=project_platform
+            ):
+                yield f"data: {json.dumps({'token': chunk})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

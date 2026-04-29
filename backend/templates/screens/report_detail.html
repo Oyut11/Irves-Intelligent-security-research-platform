@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ category_label }} Report — IRVES{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/css/report_detail.css?v=1" />
+{% endblock %}
+{% block content %}
+<div class="report-page">
+    <div class="report-header">
+        <div class="report-header__left">
+            <a href="/source-analysis?project_id={{ project.id }}" class="report-header__back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>Back to Analysis</span>
+            </a>
+            <div class="report-header__title-row">
+                <span id="report-icon"></span>
+                <h1 id="report-title">{{ category_label }} Report</h1>
+                <span class="severity-badge" id="report-status-badge">—</span>
+            </div>
+            <div class="report-header__meta">
+                <span>{{ project.name }}</span><span class="dot">·</span>
+                <span id="report-score">—</span><span class="dot">·</span>
+                <span id="report-duration">—</span>
+            </div>
+        </div>
+        <div class="report-header__actions">
+            <button class="btn btn--sm btn--ghost" onclick="window.print()">Print</button>
+            <button class="btn btn--sm btn--ghost" onclick="exportMarkdown()">Export</button>
+        </div>
+    </div>
+    <div class="report-stats">
+        <div class="report-stat--critical"><div class="report-stat__value" id="stat-crit">0</div><div class="report-stat__label">Critical</div></div>
+        <div class="report-stat--high"><div class="report-stat__value" id="stat-high">0</div><div class="report-stat__label">High</div></div>
+        <div class="report-stat--medium"><div class="report-stat__value" id="stat-med">0</div><div class="report-stat__label">Medium</div></div>
+        <div class="report-stat--low"><div class="report-stat__value" id="stat-low">0</div><div class="report-stat__label">Low</div></div>
+        <div class="report-stat--score"><div class="report-stat__value" id="stat-score">—</div><div class="report-stat__label">Score</div></div>
+    </div>
+    <div class="report-body">
+        <aside class="report-toc"><div class="report-toc__header">Contents</div><nav id="toc-nav"></nav></aside>
+        <main id="report-content"><div style="text-align:center;padding:48px;color:var(--text-muted);"><div class="spinner"></div><div style="margin-top:16px;">Loading…</div></div></main>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/report_detail.js?v=1"></script>
+{% endblock %}

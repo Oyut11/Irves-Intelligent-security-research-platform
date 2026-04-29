@@ -3,7 +3,7 @@ IRVES — Project Pydantic Models
 Request/response schemas for project operations.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -15,6 +15,7 @@ class Platform(str, Enum):
     IOS = "ios"
     DESKTOP = "desktop"
     WEB = "web"
+    REPOSITORY = "repository"
 
 
 class ProjectCreate(BaseModel):
@@ -24,6 +25,11 @@ class ProjectCreate(BaseModel):
     target_path: Optional[str] = Field(None, max_length=2000)
     package_name: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
+    # Git integration (optional — only set for repository scans)
+    source_type: Optional[str] = Field("upload", pattern="^(upload|git)$")
+    repo_url: Optional[str] = Field(None, max_length=2000)
+    repo_branch: Optional[str] = Field("main", max_length=255)
+    repo_token: Optional[str] = Field(None, max_length=2000)  # PAT
 
     @field_validator("name")
     @classmethod
@@ -33,6 +39,13 @@ class ProjectCreate(BaseModel):
         if not v:
             raise ValueError("Project name cannot be empty")
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_git_requires_url(cls, values):
+        if values.get("source_type") == "git" and not values.get("repo_url"):
+            raise ValueError("repo_url is required when source_type is 'git'")
+        return values
 
 
 class ProjectUpdate(BaseModel):
@@ -51,6 +64,10 @@ class ProjectResponse(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    # Git fields
+    source_type: Optional[str] = "upload"
+    repo_url: Optional[str] = None
+    repo_branch: Optional[str] = None
 
     # Computed fields for UI
     status: str = "clean"  # clean, issues, scanning

@@ -1,218 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8" />
-    <title>SBOM Report — {{ project.name }}</title>
-    <style>
-        :root {
-            --bg: #0d0f12;
-            --surface: #161a20;
-            --border: #2a2f38;
-            --text: #e2e6ed;
-            --muted: #6b7280;
-            --accent: #5b8af4;
-            --critical: #ef4444;
-            --high: #f97316;
-            --medium: #eab308;
-            --low: #22c55e;
-            --info: #3b82f6;
-        }
+{% block title %}SBOM / Component Report - {{ project.name }}{% endblock %}
+{% block report_title %}Software Bill of Materials (SBOM){% endblock %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block content %}
+<h2>Overview</h2>
+<p>This report details the tracking of static code, third-party libraries, and runtime network behavior discovered during analysis.</p>
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2.5rem;
-            line-height: 1.6;
-        }
+<h3>Static Code Findings ({{ code_findings|length }})</h3>
+<table>
+    <thead><tr><th>Library / Component Context</th><th>Discovery Tool</th><th>Snippet</th></tr></thead>
+    <tbody>
+        {% for f in code_findings %}
+        <tr>
+            <td><strong>{{ f.title }}</strong><br/><span style="font-size:9pt; color:#666;">{{ f.location }}</span></td>
+            <td>{{ f.tool }}</td>
+            <td style="font-family:monospace; font-size:8pt; background:#f9f9f9;">{{ (f.code_snippet[:100]+'...') if f.code_snippet else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: .25rem;
-        }
+<h3>Runtime Findings & Intercepts ({{ runtime_findings|length }})</h3>
+<table>
+    <thead><tr><th>Activity Title</th><th>Intercept Tool</th><th>Location / Endpoint</th></tr></thead>
+    <tbody>
+        {% for f in runtime_findings %}
+        <tr>
+            <td>{{ f.title }}</td>
+            <td><span class="badge">{{ f.tool }}</span></td>
+            <td style="font-size:9pt;">{{ f.location }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-        h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--muted);
-            margin: 2rem 0 .75rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: .4rem;
-        }
+<h3>Third-Party Packages Discovered (Static Analysis)</h3>
+<table>
+    <thead><tr><th>Security Context</th><th>Severity</th><th>Tool</th></tr></thead>
+    <tbody>
+        {% for f in static_findings %}
+        <tr>
+            <td>{{ f.title }}</td>
+            <td><span class="severity sev-{{ f.severity|severity_class }}">{{ f.severity }}</span></td>
+            <td>{{ f.tool }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-        .meta {
-            font-size: .8rem;
-            color: var(--muted);
-            margin-bottom: 2rem;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: .72rem;
-            font-weight: 700;
-        }
-
-        .badge-critical {
-            background: color-mix(in srgb, var(--critical) 15%, transparent);
-            color: var(--critical);
-            border: 1px solid var(--critical);
-        }
-
-        .badge-high {
-            background: color-mix(in srgb, var(--high) 15%, transparent);
-            color: var(--high);
-            border: 1px solid var(--high);
-        }
-
-        .badge-medium {
-            background: color-mix(in srgb, var(--medium) 15%, transparent);
-            color: var(--medium);
-            border: 1px solid var(--medium);
-        }
-
-        .badge-low {
-            background: color-mix(in srgb, var(--low) 15%, transparent);
-            color: var(--low);
-            border: 1px solid var(--low);
-        }
-
-        .badge-info {
-            background: color-mix(in srgb, var(--info) 15%, transparent);
-            color: var(--info);
-            border: 1px solid var(--info);
-        }
-
-        .section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin-bottom: 1.5rem;
-        }
-
-        .section__header {
-            padding: .75rem 1rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .section__title {
-            font-weight: 600;
-            font-size: .9rem;
-        }
-
-        .section__count {
-            font-family: monospace;
-            color: var(--accent);
-            font-size: .85rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .8rem;
-        }
-
-        th {
-            text-align: left;
-            padding: .5rem .75rem;
-            color: var(--muted);
-            font-size: .7rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            border-bottom: 1px solid var(--border);
-        }
-
-        td {
-            padding: .5rem .75rem;
-            border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-            vertical-align: top;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        footer {
-            margin-top: 3rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-            font-size: .75rem;
-            color: var(--muted);
-        }
-    </style>
-</head>
-
-<body>
-    <h1>Software Bill of Materials — Security Report</h1>
-    <p class="meta">Project: <strong>{{ project.name }}</strong> &nbsp;|&nbsp; Generated: {{
-        generated_at.strftime('%Y-%m-%d %H:%M UTC') }} &nbsp;|&nbsp; Total findings: {{ total_findings }}</p>
-
-    {% macro finding_table(items) %}
-    {% if items %}
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Severity</th>
-                <th>Location</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for f in items %}
-            {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td><strong>{{ f.title }}</strong></td>
-                <td><span class="badge badge-{{ sev }}">{{ sev|upper }}</span></td>
-                <td style="font-family:monospace;font-size:.75rem;">{{ f.location or '—' }}</td>
-                <td style="color:var(--muted);font-size:.75rem;">{{ f.description[:100] if f.description else '—' }}{%
-                    if f.description and f.description|length > 100 %}…{% endif %}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="padding:.75rem 1rem;color:var(--muted);font-style:italic;">No findings in this category.</p>
-    {% endif %}
-    {% endmacro %}
-
-    <h2>Static Analysis</h2>
-    <div class="section">
-        <div class="section__header"><span class="section__title">MobSF</span><span class="section__count">{{
-                static_findings|length }} finding(s)</span></div>
-        {{ finding_table(static_findings) }}
-    </div>
-
-    <h2>Code Analysis</h2>
-    <div class="section">
-        <div class="section__header"><span class="section__title">JADX / APKTool</span><span class="section__count">{{
-                code_findings|length }} finding(s)</span></div>
-        {{ finding_table(code_findings) }}
-    </div>
-
-    <h2>Runtime Analysis</h2>
-    <div class="section">
-        <div class="section__header"><span class="section__title">Frida / mitmproxy</span><span
-                class="section__count">{{ runtime_findings|length }} finding(s)</span></div>
-        {{ finding_table(runtime_findings) }}
-    </div>
-
-    <footer>Generated by IRVES · {{ generated_at.strftime('%Y-%m-%d') }} · Report is confidential</footer>
-</body>
-
-</html>
+{% endblock %}

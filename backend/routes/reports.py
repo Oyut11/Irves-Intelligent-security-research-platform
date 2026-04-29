@@ -19,6 +19,7 @@ from database import (
     create_report,
     get_report,
     get_reports_by_project,
+    get_scans_by_project,
     update_report_file,
 )
 from models.report import ReportCreate, ReportResponse, ReportFormat, ReportTemplate
@@ -82,6 +83,11 @@ async def generate_report(
         scan = await get_scan(db, request.scan_id)
         if not scan:
             raise HTTPException(status_code=404, detail="Scan not found")
+    else:
+        # Fallback to the latest scan for the project
+        scans = await get_scans_by_project(db, request.project_id, limit=1)
+        if scans:
+            request.scan_id = scans[0].id
 
     report = await create_report(
         db=db,
@@ -185,6 +191,52 @@ async def download_report(
         media_type=_MEDIA_TYPES.get(report.format, "application/octet-stream"),
         filename=f"irves_{report.template}_{report.id}.{report.format}",
     )
+
+
+@router.post("/open/{report_id}")
+async def open_report_file(
+    report_id: str,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Open the report file natively on the host OS."""
+    import subprocess
+    import sys
+    
+    report = await get_report(db, report_id)
+    if not report or not report.file_path:
+        raise HTTPException(status_code=404, detail="Report not generated yet")
+
+    file_path = Path(report.file_path).resolve()
+    reports_dir = Path(settings.REPORTS_DIR).resolve()
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File missing from disk")
+    try:
+        file_path.relative_to(reports_dir)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid report file path")
+
+    try:
+        if sys.platform == "win32":
+            import os
+            os.startfile(str(file_path))
+        elif sys.platform == "darwin":
+            subprocess.Popen(
+                ["open", str(file_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True
+            )
+        else:
+            subprocess.Popen(
+                ["xdg-open", str(file_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True  # fully detach to prevent hang
+            )
+        return {"status": "opened"}
+    except Exception:
+        logger.error("Failed to open report file", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not open report file")
 
 
 # ── Convenience shortcuts ──────────────────────────────────────────────────────

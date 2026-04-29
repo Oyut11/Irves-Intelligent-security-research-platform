@@ -1,0 +1,81 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  IRVES — Docker Compose Configuration                                        ║
+# ║  Usage: docker compose up -d                                               ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+version: '3.9'
+
+services:
+  # ── IRVES Backend ───────────────────────────────────────────────────────────
+  irves:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: irves-backend
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      # Database (use PostgreSQL for production)
+      - DATABASE_URL=postgresql+asyncpg://irves:${POSTGRES_PASSWORD:-irves_secure_pass}@postgres:5432/irves
+      
+      # AI Provider (set at least one)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-anthropic/claude-3-5-sonnet-20240620}
+      
+      # Server
+      - SECRET_KEY=${SECRET_KEY:-}
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8765
+      
+      # OAuth (optional)
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - REDIRECT_URI=${REDIRECT_URI:-http://localhost:8765/api/auth/callback}
+      
+      # Storage
+      - PROJECTS_DIR=/app/.irves/projects
+      - REPORTS_DIR=/app/.irves/reports
+    volumes:
+      - irves-projects:/app/.irves/projects
+      - irves-reports:/app/.irves/reports
+    depends_on:
+      - postgres
+    networks:
+      - irves-network
+
+  # ── PostgreSQL Database (Production) ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: irves-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=irves
+      - POSTGRES_USER=irves
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-irves_secure_pass}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - irves-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irves -d irves"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  postgres-data:
+    driver: local
+  irves-projects:
+    driver: local
+  irves-reports:
+    driver: local
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  irves-network:
+    driver: bridge

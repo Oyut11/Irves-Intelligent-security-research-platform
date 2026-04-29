@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% block title %}Source Code Analysis — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            {% if project %}
+            <h1 class="page-header__title">Source Code Analysis</h1>
+            <p class="page-header__subtitle">{{ project.name }} — {{ project.platform|title }}</p>
+            {% else %}
+            <h1 class="page-header__title">Source Code Analysis</h1>
+            <p class="page-header__subtitle">Select a repository project to analyze</p>
+            {% endif %}
+        </div>
+        <div style="display:flex;gap:var(--sp-3);align-items:center;">
+            <button class="btn btn--sm btn--ghost" id="toggle-src-ai-btn" style="color:var(--accent); border:1px solid rgba(99,102,241,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                AI Assistant
+            </button>
+            <div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>
+            {% if project %}
+            <button class="btn btn--ghost" id="run-analysis-btn" onclick="runAnalysis()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;">
+                    <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Run Analysis
+            </button>
+            <button class="btn btn--ghost" onclick="invalidateCache()">Invalidate Cache</button>
+            {% else %}
+            <a href="/" class="btn btn--ghost">Select Project</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Progress Bar (hidden until analysis runs) -->
+    <div id="progress-container" style="display:none;margin-bottom:var(--sp-5);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-2);">
+            <span style="font-size:12px;font-weight:600;color:var(--text-muted);" id="progress-label">Analyzing...</span>
+            <span style="font-size:12px;color:var(--text-muted);" id="progress-percent">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-bar__fill" id="progress-fill" style="width:0%;"></div></div>
+    </div>
+
+    <!-- Severity Stat Cards — always visible, zeros in empty state -->
+    <div class="stat-cards" role="list" aria-label="Source analysis severity summary">
+        <div class="stat-card stat-card--critical" role="listitem" id="stat-critical"
+            onclick="filterFindings('critical')" style="cursor:pointer;transition:transform var(--transition),border-color var(--transition);"
+            onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
+            <div class="stat-card__value" id="count-critical">0</div>
+            <div class="stat-card__label">Critical</div>
+        </div>
+        <div class="stat-card stat-card--high" role="listitem" id="stat-high"
+            onclick="filterFindings('high')" style="cursor:pointer;transition:transform var(--transition),border-color var(--transition);"
+            onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
+            <div class="stat-card__value" id="count-high">0</div>
+            <div class="stat-card__label">High</div>
+        </div>
+        <div class="stat-card stat-card--medium" role="listitem" id="stat-medium"
+            onclick="filterFindings('medium')" style="cursor:pointer;transition:transform var(--transition),border-color var(--transition);"
+            onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
+            <div class="stat-card__value" id="count-medium">0</div>
+            <div class="stat-card__label">Medium</div>
+        </div>
+        <div class="stat-card stat-card--low" role="listitem" id="stat-low"
+            onclick="filterFindings('low')" style="cursor:pointer;transition:transform var(--transition),border-color var(--transition);"
+            onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
+            <div class="stat-card__value" id="count-low">0</div>
+            <div class="stat-card__label">Low</div>
+        </div>
+    </div>
+
+    <!-- Category Cards Grid — always visible -->
+    <div id="analysis-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--sp-4);margin-top:var(--sp-6);">
+
+        {% set categories = [
+            ('architecture',     '🏗️', 'Architecture',     'Design patterns, coupling/cohesion, module structure'),
+            ('scalability',      '📈', 'Scalability',      'Bottleneck hotspots, async usage, DB patterns'),
+            ('code_quality',     '✨', 'Code Quality',      'Complexity, duplication, test coverage, dead code'),
+            ('security',         '🛡️', 'Security',          'SAST findings, injection risks, auth patterns'),
+            ('dependencies',     '📦', 'Dependencies',      'CVEs, outdated packages, license risks'),
+            ('secrets',          '🔑', 'Secrets',           'Hardcoded keys, exposed credentials'),
+            ('technical_debt',   '🔧', 'Technical Debt',   'TODO density, refactor candidates, legacy age'),
+            ('contributor_risk', '👥', 'Contributor Risk',  'Bus factor, commit patterns, force pushes'),
+        ] %}
+
+        {% for key, icon, label, desc in categories %}
+        <div class="card category-card" data-category="{{ key }}" onclick="showCategoryDetails('{{ key }}')">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-3);">
+                <div style="display:flex;align-items:center;gap:var(--sp-2);">
+                    <span style="font-size:20px;">{{ icon }}</span>
+                    <h3 style="font-size:13px;font-weight:600;color:var(--text-primary);">{{ label }}</h3>
+                </div>
+                <span class="severity-badge cat-status" id="cat-status-{{ key }}" style="font-size:10px;">—</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:var(--sp-3);">{{ desc }}</div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid var(--border);padding-top:var(--sp-2);margin-top:auto;">
+                <span style="color:var(--text-muted);">Findings</span>
+                <span style="font-family:var(--font-mono);font-weight:600;" id="cat-count-{{ key }}">—</span>
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- Findings Panel — always visible with Filter button -->
+    <div class="panel" style="margin-top:var(--sp-6);" id="findings-panel">
+        <div class="findings-header">
+            <span class="findings-header__title">
+                Findings <span style="color:var(--text-primary);font-family:var(--font-mono);" id="findings-total-count">0</span>
+            </span>
+            <div style="display:flex;gap:var(--sp-2);align-items:center;">
+                <span id="analysis-live-indicator" style="display:none;align-items:center;gap:var(--sp-2);font-size:11px;color:var(--accent);font-weight:600;">
+                    <span class="severity-dot severity-dot--scanning"></span>
+                    Analyzing
+                </span>
+                <button class="btn btn--sm btn--ghost" id="filter-findings-btn" onclick="toggleFilterPanel()">
+                    Filter
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Dropdown -->
+        <div id="filter-panel" style="display:none;padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--border);background:var(--surface-raised);display:none;gap:var(--sp-3);align-items:center;flex-wrap:wrap;">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Category</div>
+            <select id="filter-category" onchange="applyFilters()" style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-size:11px;padding:4px 8px;border-radius:var(--radius-sm);outline:none;">
+                <option value="">All categories</option>
+                <option value="architecture">Architecture</option>
+                <option value="scalability">Scalability</option>
+                <option value="code_quality">Code Quality</option>
+                <option value="security">Security</option>
+                <option value="dependencies">Dependencies</option>
+                <option value="secrets">Secrets</option>
+                <option value="technical_debt">Technical Debt</option>
+                <option value="contributor_risk">Contributor Risk</option>
+            </select>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Severity</div>
+            <select id="filter-severity" onchange="applyFilters()" style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-size:11px;padding:4px 8px;border-radius:var(--radius-sm);outline:none;">
+                <option value="">All severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="info">Info</option>
+            </select>
+            <button class="btn btn--sm btn--ghost" onclick="clearFilters()" style="font-size:11px;">Clear</button>
+        </div>
+
+        <!-- Findings List -->
+        <div id="findings-list">
+            <div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);" id="findings-empty-state">
+                {% if not project %}
+                <div style="font-size:14px;">Welcome to Source Code Analysis. Select a repository project to begin.</div>
+                {% else %}
+                <div style="font-size:14px;margin-bottom:var(--sp-2);">No analysis run yet.</div>
+                <div style="font-size:12px;color:var(--text-faint);">Click <strong style="color:var(--text-primary);">Run Analysis</strong> to scan all 8 categories.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Category Details Side Panel -->
+<div id="category-details-panel" style="position:fixed;top:var(--topbar-h,52px);right:0;width:480px;height:calc(100vh - var(--topbar-h,52px));background:var(--surface);border-left:1px solid var(--border);z-index:100;transform:translateX(100%);transition:transform var(--transition-slow);overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,0.5);">
+    <div style="padding:var(--sp-6);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-5);">
+            <h2 id="panel-title" class="page-header__title" style="font-size:16px;">Category Details</h2>
+            <button class="btn btn--sm btn--ghost" onclick="closeCategoryPanel()">✕</button>
+        </div>
+        <div id="panel-content"></div>
+    </div>
+</div>
+
+<!-- AI Assistant Drawer -->
+<div id="src-ai-drawer" style="position:fixed;bottom:0;right:0;width:400px;max-height:600px;display:none;flex-direction:column;background:var(--surface-raised);border-top:1px solid var(--border);border-left:1px solid var(--border);border-top-left-radius:var(--radius-lg);z-index:200;padding:var(--sp-4);box-shadow:-2px -2px 12px rgba(0,0,0,0.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-3);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);">Irves AI — Code Analysis</div>
+        <button class="btn btn--sm btn--ghost" id="src-ai-close" style="font-size:12px;">✕</button>
+    </div>
+    <div id="src-ai-history" style="flex:1;overflow-y:auto;font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:var(--sp-3);display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Irves AI</div>
+            <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--text-primary);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">Hello! I can help you understand the source code analysis results. Run an analysis first, then ask me about any category or finding.</div>
+        </div>
+    </div>
+    <div style="display:flex;gap:var(--sp-2);">
+        <input type="text" id="src-ai-input" placeholder="Ask about the analysis..." style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);padding:0 var(--sp-2);font-size:12px;outline:none;height:30px;" autocomplete="off"/>
+        <button class="btn btn--primary btn--sm" id="src-ai-submit">Ask</button>
+    </div>
+</div>
+
+<style>
+.category-card { cursor:pointer; transition:transform var(--transition),border-color var(--transition); padding:var(--sp-4); display:flex; flex-direction:column; }
+.category-card:hover { transform:translateY(-2px); border-color:var(--accent); }
+.category-card.active { border-color:var(--accent); background:rgba(99,102,241,0.04); }
+</style>
+
+<script>
+const projectId = "{{ project.id if project else '' }}";
+let allFindings = [];   // flat list of all findings across categories
+let progressInterval = null;
+let filterVisible = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (projectId) loadAnalysisData();
+});
+
+// ── Data loading ────────────────────────────────────────────────────────────
+
+async function loadAnalysisData() {
+    try {
+        const cacheBust = `?t=${Date.now()}`;
+        const res = await fetch(`/api/source-analysis/${projectId}${cacheBust}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.has_analysis) {
+            applyAnalysisData(data.categories);
+        } else {
+            // Reset UI for empty state
+            document.querySelectorAll('.cat-status').forEach(el => { el.textContent = '—'; el.className = 'severity-badge cat-status'; });
+            document.querySelectorAll('[id^="cat-count-"]').forEach(el => el.textContent = '—');
+            ['critical','high','medium','low'].forEach(s => document.getElementById('count-'+s).textContent = '0');
+            document.getElementById('findings-list').innerHTML = '<div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);" id="findings-empty-state"><div style="font-size:14px;margin-bottom:var(--sp-2);">No analysis run yet.</div><div style="font-size:12px;color:var(--text-faint);">Click <strong style="color:var(--text-primary);">Run Analysis</strong> to scan all 8 categories.</div></div>';
+            document.getElementById('findings-empty-state').style.display = 'block';
+            document.getElementById('findings-total-count').textContent = '0';
+            allFindings = [];
+        }
+    } catch (e) { console.error('loadAnalysisData:', e); }
+}
+
+function applyAnalysisData(categories) {
+    let totalCrit = 0, totalHigh = 0, totalMed = 0, totalLow = 0;
+    allFindings = [];
+
+    for (const [cat, data] of Object.entries(categories)) {
+        // Category card badge
+        const badge = document.getElementById(`cat-status-${cat}`);
+        const countEl = document.getElementById(`cat-count-${cat}`);
+        if (badge) {
+            badge.textContent = data.status === 'completed' ? `${data.finding_count} findings` : data.status;
+            badge.className = `severity-badge severity-badge--${data.status === 'completed' ? (data.finding_count > 0 ? 'medium' : 'low') : 'info'}`;
+        }
+        if (countEl) countEl.textContent = data.finding_count ?? '—';
+
+        // Tally severity counts
+        const sev = data.severity_breakdown || {};
+        totalCrit += sev.critical || 0;
+        totalHigh += sev.high || 0;
+        totalMed  += sev.medium || 0;
+        totalLow  += sev.low || 0;
+    }
+
+    // Update stat cards
+    document.getElementById('count-critical').textContent = totalCrit;
+    document.getElementById('count-high').textContent     = totalHigh;
+    document.getElementById('count-medium').textContent   = totalMed;
+    document.getElementById('count-low').textContent      = totalLow;
+
+    // Load flat findings list
+    loadAllFindings();
+}
+
+async function loadAllFindings(catFilter = '', sevFilter = '') {
+    allFindings = [];
+    const cats = catFilter ? [catFilter] : ['architecture','scalability','code_quality','security','dependencies','secrets','technical_debt','contributor_risk'];
+    const cacheBust = `&t=${Date.now()}`;
+
+    for (const cat of cats) {
+        try {
+            let url = `/api/source-analysis/${projectId}/category/${cat}?limit=200${cacheBust}`;
+            if (sevFilter) url += `&severity=${sevFilter}`;
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (data.findings) {
+                data.findings.forEach(f => allFindings.push({ ...f, category: cat }));
+            }
+        } catch (e) { /* category may not exist yet */ }
+    }
+
+    renderFindingsList();
+}
+
+function renderFindingsList() {
+    const list = document.getElementById('findings-list');
+    const empty = document.getElementById('findings-empty-state');
+    const totalEl = document.getElementById('findings-total-count');
+
+    totalEl.textContent = allFindings.length;
+
+    if (allFindings.length === 0) {
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+
+    if (empty) empty.style.display = 'none';
+
+    const catLabels = {
+        architecture: 'Architecture', scalability: 'Scalability', code_quality: 'Code Quality',
+        security: 'Security', dependencies: 'Dependencies', secrets: 'Secrets',
+        technical_debt: 'Technical Debt', contributor_risk: 'Contributor Risk',
+    };
+
+    list.innerHTML = allFindings.map(f => `
+        <div class="finding-row" style="cursor:pointer;" onclick="showFindingDetail(${JSON.stringify(f).replace(/"/g,'&quot;')})">
+            <div class="finding-row__severity">
+                <span class="severity-badge severity-badge--${f.severity}">${f.severity}</span>
+            </div>
+            <div class="finding-row__content">
+                <div class="finding-row__title">${escHtml(f.type)}</div>
+                <div class="finding-row__location">
+                    <span style="opacity:0.6;">${catLabels[f.category] || f.category}</span>
+                    ${f.file_path ? ' · ' + escHtml(f.file_path) + (f.line_number ? ':' + f.line_number : '') : ''}
+                </div>
+            </div>
+            <div class="finding-row__arrow" aria-hidden="true">›</div>
+        </div>
+    `).join('');
+}
+
+// ── Filters ─────────────────────────────────────────────────────────────────
+
+function toggleFilterPanel() {
+    filterVisible = !filterVisible;
+    const fp = document.getElementById('filter-panel');
+    fp.style.display = filterVisible ? 'flex' : 'none';
+}
+
+function applyFilters() {
+    const cat = document.getElementById('filter-category').value;
+    const sev = document.getElementById('filter-severity').value;
+
+    // Update stat card highlights
+    document.querySelectorAll('.stat-card').forEach(el => el.style.borderColor = 'var(--border)');
+    if (sev) {
+        const card = document.getElementById('stat-' + sev);
+        if (card) card.style.borderColor = `var(--${sev})`;
+    }
+
+    loadAllFindings(cat, sev);
+}
+
+function clearFilters() {
+    document.getElementById('filter-category').value = '';
+    document.getElementById('filter-severity').value = '';
+    document.querySelectorAll('.stat-card').forEach(el => el.style.borderColor = 'var(--border)');
+    loadAllFindings();
+}
+
+function filterFindings(severity) {
+    if (!filterVisible) toggleFilterPanel();
+    document.getElementById('filter-severity').value = severity;
+    applyFilters();
+}
+
+// ── Run Analysis ─────────────────────────────────────────────────────────────
+
+async function runAnalysis() {
+    const btn = document.getElementById('run-analysis-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Starting…'; }
+
+    try {
+        const res = await fetch(`/api/source-analysis/${projectId}/run`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error('Failed to start analysis');
+
+        document.getElementById('progress-container').style.display = 'block';
+        document.getElementById('analysis-live-indicator').style.display = 'flex';
+        progressInterval = setInterval(pollProgress, 2000);
+    } catch (err) {
+        window.irves?.showToast('Error: ' + err.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Run Analysis'; }
+    }
+}
+
+async function pollProgress() {
+    try {
+        const res = await fetch(`/api/source-analysis/${projectId}/status`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        document.getElementById('progress-fill').style.width = data.progress + '%';
+        document.getElementById('progress-percent').textContent = data.progress + '%';
+        if (data.current_category) {
+            document.getElementById('progress-label').textContent = `Analyzing ${data.current_category.replace('_',' ')}…`;
+        }
+
+        if (data.status === 'completed' || data.status === 'failed') {
+            clearInterval(progressInterval);
+            document.getElementById('analysis-live-indicator').style.display = 'none';
+            document.getElementById('progress-label').textContent = data.status === 'failed'
+                ? 'Analysis failed: ' + (data.error_message || 'Unknown error')
+                : 'Analysis complete!';
+
+            setTimeout(() => {
+                document.getElementById('progress-container').style.display = 'none';
+                const btn = document.getElementById('run-analysis-btn');
+                if (btn) { btn.disabled = false; btn.textContent = 'Run Analysis'; }
+                loadAnalysisData();
+            }, 2000);
+        }
+    } catch (e) { console.error('pollProgress:', e); }
+}
+
+async function invalidateCache() {
+    if (!confirm('Delete all cached analysis results and start fresh?')) return;
+    try {
+        const res = await fetch(`/api/source-analysis/${projectId}/invalidate`, { method: 'POST' });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.detail || 'Server error');
+        }
+        window.irves?.showToast('Cache invalidated');
+        // Reset UI from server state to confirm deletion
+        loadAnalysisData();
+    } catch (err) { window.irves?.showToast('Error: ' + err.message); }
+}
+
+// ── Simple Markdown → HTML renderer ──────────────────────────────────────────
+function renderMarkdown(md) {
+    if (!md) return '';
+    let html = escHtml(md);
+    // Code blocks (```...```)
+    html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--sp-3);overflow-x:auto;font-size:11px;line-height:1.5;margin:var(--sp-2) 0;">$1</pre>');
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:11px;">$1</code>');
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    // Headers
+    html = html.replace(/^## (.+)$/gm, '<h2 style="font-size:15px;font-weight:700;color:var(--text-primary);margin:var(--sp-4) 0 var(--sp-2);padding-bottom:4px;border-bottom:1px solid var(--border);">$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1 style="font-size:18px;font-weight:700;color:var(--text-primary);margin:0 0 var(--sp-3);">$1</h1>');
+    // Tables
+    html = html.replace(/^\|(.+)\|$/gm, (match, content) => {
+        const cells = content.split('|').map(c => c.trim());
+        if (cells.every(c => c.match(/^[-:]+$/))) return ''; // separator row
+        const isHeader = cells.every(c => c.length > 0);
+        return '<tr>' + cells.map(c => `<td style="padding:4px 8px;border:1px solid var(--border);font-size:11px;">${c}</td>`).join('') + '</tr>';
+    });
+    html = html.replace(/(<tr>[\s\S]*?<\/tr>)/g, '<table style="border-collapse:collapse;width:100%;margin:var(--sp-2) 0;">$1</table>');
+    // Unordered lists
+    html = html.replace(/^- (.+)$/gm, '<li style="font-size:12px;color:var(--text-primary);line-height:1.6;margin-left:16px;">$1</li>');
+    // Paragraphs (double newlines)
+    html = html.replace(/\n\n/g, '<br><br>');
+    html = html.replace(/\n/g, '<br>');
+    // Clean up empty table rows
+    html = html.replace(/<table([^>]*)>\s*<\/table>/g, '');
+    return html;
+}
+
+// ── Category details panel ───────────────────────────────────────────────────
+
+async function showCategoryDetails(category) {
+    document.querySelectorAll('.category-card').forEach(el => el.classList.remove('active'));
+    document.querySelector(`[data-category="${category}"]`)?.classList.add('active');
+
+    const href = `/source-analysis/report/${projectId}/${category}`;
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'navigate', href }, '*');
+    } else {
+        window.location.href = href;
+    }
+}
+
+function showFindingDetail(f) {
+    showCategoryDetails(f.category);
+}
+
+function closeCategoryPanel() {
+    document.getElementById('category-details-panel').style.transform = 'translateX(100%)';
+    document.querySelectorAll('.category-card').forEach(el => el.classList.remove('active'));
+}
+
+// ── AI Assistant ─────────────────────────────────────────────────────────────
+
+(function initAI() {
+    const toggleBtn = document.getElementById('toggle-src-ai-btn');
+    const drawer    = document.getElementById('src-ai-drawer');
+    const closeBtn  = document.getElementById('src-ai-close');
+    const input     = document.getElementById('src-ai-input');
+    const submit    = document.getElementById('src-ai-submit');
+    const history   = document.getElementById('src-ai-history');
+
+    toggleBtn?.addEventListener('click', () => { drawer.style.display = drawer.style.display === 'flex' ? 'none' : 'flex'; });
+    closeBtn?.addEventListener('click', () => { drawer.style.display = 'none'; });
+    submit?.addEventListener('click', send);
+    input?.addEventListener('keypress', e => { if (e.key === 'Enter') send(); });
+
+    async function send() {
+        const msg = input.value.trim();
+        if (!msg || !projectId) return;
+        input.value = '';
+
+        const userEl = document.createElement('div');
+        userEl.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+        userEl.innerHTML = `<div style="font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);">You</div>
+            <div style="font-size:12px;line-height:1.6;color:var(--text-primary);background:rgba(99,102,241,0.08);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">${escHtml(msg)}</div>`;
+        history.appendChild(userEl);
+
+        const aiEl = document.createElement('div');
+        aiEl.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+        aiEl.innerHTML = `<div style="font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);">Irves AI</div>
+            <div class="ai-content" style="font-size:12px;line-height:1.6;color:var(--text-primary);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;"></div>`;
+        history.appendChild(aiEl);
+        history.scrollTop = history.scrollHeight;
+
+        const contentDiv = aiEl.querySelector('.ai-content');
+        let buf = '';
+
+        try {
+            const res = await fetch(`/api/source-analysis/${projectId}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg }),
+            });
+            if (!res.ok) { contentDiv.textContent = 'Error starting chat'; return; }
+
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            (function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) { if (!buf) contentDiv.textContent = '(no response)'; return; }
+                    dec.decode(value).split('\n').forEach(line => {
+                        if (!line.startsWith('data: ')) return;
+                        try {
+                            const d = JSON.parse(line.slice(6));
+                            if (d.token) { buf += d.token; contentDiv.innerHTML = renderMarkdown(buf); history.scrollTop = history.scrollHeight; }
+                            if (d.error) { buf += '\n[Error: ' + d.error + ']'; contentDiv.innerHTML = renderMarkdown(buf); }
+                        } catch (_) {}
+                    });
+                    read();
+                });
+            })();
+        } catch (e) { contentDiv.textContent = 'Connection error: ' + e.message; }
+    }
+})();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

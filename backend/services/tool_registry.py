@@ -88,18 +88,6 @@ def _initialize_registry() -> None:
         estimated_duration_seconds=60,
     )
 
-    # MobSF - Comprehensive mobile security analysis
-    from services.tools.mobsf import MobSFRunner
-    register_tool(
-        name="mobsf",
-        runner_class=MobSFRunner,
-        description="Comprehensive mobile security framework analysis",
-        category="static",
-        platforms=["android", "ios"],
-        requires_server=True,
-        estimated_duration_seconds=180,
-    )
-
     # Frida - Dynamic instrumentation
     from services.tools.frida import FridaRunner
     register_tool(
@@ -131,7 +119,7 @@ _initialize_registry()
 # Scan profile definitions - which tools to run for each profile
 SCAN_PROFILE_TOOLS: Dict[str, List[str]] = {
     ScanProfile.QUICK: ["apktool", "jadx"],
-    ScanProfile.FULL: ["apktool", "jadx", "mobsf"],
+    ScanProfile.FULL: ["apktool", "jadx", "frida", "mitmproxy"],
     ScanProfile.RUNTIME: ["frida", "mitmproxy"],
     ScanProfile.CUSTOM: [],  # User-specified
 }
@@ -139,8 +127,8 @@ SCAN_PROFILE_TOOLS: Dict[str, List[str]] = {
 # Estimated duration for each profile (sum of tool durations)
 SCAN_PROFILE_DURATION: Dict[str, int] = {
     ScanProfile.QUICK: 90,      # ~1.5 minutes
-    ScanProfile.FULL: 270,      # ~4.5 minutes
-    ScanProfile.RUNTIME: 420,  # ~7 minutes
+    ScanProfile.FULL: 510,      # ~8.5 minutes
+    ScanProfile.RUNTIME: 420,   # ~7 minutes
 }
 
 
