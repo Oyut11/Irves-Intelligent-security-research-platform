@@ -20,6 +20,50 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Known-safe URL patterns (exclude from HTTP URL findings)
+# ─────────────────────────────────────────────────────────────────────────────
+SAFE_URL_PATTERNS = [
+    r'http://schemas\.android\.com/.*',
+    r'http://schemas\.xmlsoap\.org/.*',
+    r'http://www\.w3\.org/.*',
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Known vulnerable third-party library signatures
+# Format: package_prefix -> [(version, CVE, severity, description), ...]
+# ─────────────────────────────────────────────────────────────────────────────
+LIBRARY_VULNERABILITIES = {
+    "okhttp": [
+        ("2.7.4", "CVE-2016-2402", "high", "OkHttp before 2.7.5 certificate chain validation flaw"),
+        ("3.1.0", "CVE-2021-0341", "high", "OkHttp certificate pinning bypass in Android 8.1+"),
+    ],
+    "retrofit": [
+        ("1.9.0", "CVE-2015-5710", "medium", "Retrofit default callback executor vulnerability"),
+    ],
+    "com/facebook": [
+        ("4.0", "CVE-2014-0160", "critical", "Facebook SDK SSL heartbeat vulnerability (OpenSSL)"),
+    ],
+    "org/apache/http": [
+        ("4.3", "CVE-2014-3577", "high", "Apache HttpClient hostname verification bypass"),
+    ],
+    "gson": [
+        ("2.8.0", "CVE-2022-25647", "high", "Gson deserialization of untrusted data (DoS)"),
+    ],
+    "jackson": [
+        ("2.9.0", "CVE-2017-7525", "critical", "Jackson-databind remote code execution"),
+    ],
+    "com/squareup/picasso": [
+        ("2.5.2", "CVE-2018-1000840", "medium", "Picasso path traversal via content URIs"),
+    ],
+    "ch/qos/logback": [
+        ("1.2.0", "CVE-2021-42550", "high", "Logback remote code execution via JNDI"),
+    ],
+    "org/xmlpull": [
+        ("1.1.3", "CVE-2018-1000540", "medium", "XMLPull XXE vulnerability"),
+    ],
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Security pattern library: (pattern, title, severity, category, owasp, cwe)
 # ─────────────────────────────────────────────────────────────────────────────
 SECURITY_PATTERNS = [
@@ -88,7 +132,7 @@ class APKAnalyzerRunner(ToolRunner):
     """
     Python-native APK static analyzer.
     Uses androguard for deep bytecode analysis + apktool for decompilation.
-    Works without jadx, mobsf, or any external Java tools.
+    Works without jadx or any external Java tools.
     """
 
     @property
@@ -115,6 +159,21 @@ class APKAnalyzerRunner(ToolRunner):
 
         output_path = self._ensure_output_dir(output_dir / "apk_analyzer")
         findings: List[Dict] = []
+
+        # Phase 5: Large APK guard — warn user and cap resource-intensive stages
+        apk_size_mb = target.stat().st_size / (1024 * 1024)
+        is_large_apk = apk_size_mb > 150
+        if is_large_apk:
+            logger.warning(f"[apk_analyzer] Large APK detected ({apk_size_mb:.1f} MB) — androguard stage will be skipped to prevent OOM")
+            findings.append({
+                "title": f"Large APK: {target.name} ({apk_size_mb:.0f} MB)",
+                "severity": "info",
+                "category": "Identification",
+                "description": f"APK exceeds 150 MB. Androguard bytecode analysis is skipped to prevent memory overload. Manifest and pattern scans are still run.",
+                "location": target.name,
+                "owasp_mapping": "", "cwe_mapping": "",
+                "code_snippet": "", "tool": "apk_analyzer",
+            })
 
         def progress(msg: str):
             if progress_callback:
@@ -143,16 +202,19 @@ class APKAnalyzerRunner(ToolRunner):
             progress(f"Manifest parse error (non-fatal): {e}")
 
         # ── 3. Androguard deep analysis ───────────────────────────────────────
-        try:
-            progress("Running androguard static analysis...")
-            ag_findings = await asyncio.get_event_loop().run_in_executor(
-                None, self._run_androguard, target, progress
-            )
-            findings.extend(ag_findings)
-            progress(f"Androguard: {len(ag_findings)} findings")
-        except Exception as e:
-            progress(f"Androguard error (non-fatal): {e}")
-            logger.exception("[apk_analyzer] Androguard failed")
+        if not is_large_apk:
+            try:
+                progress("Running androguard static analysis...")
+                ag_findings = await asyncio.get_event_loop().run_in_executor(
+                    None, self._run_androguard, target, progress
+                )
+                findings.extend(ag_findings)
+                progress(f"Androguard: {len(ag_findings)} findings")
+            except Exception as e:
+                progress(f"Androguard error (non-fatal): {e}")
+                logger.exception("[apk_analyzer] Androguard failed")
+        else:
+            progress("Androguard skipped for large APK (> 150 MB)")
 
         # ── 4. Source-level pattern scan (smali / strings) ───────────────────
         try:
@@ -165,20 +227,62 @@ class APKAnalyzerRunner(ToolRunner):
         except Exception as e:
             progress(f"Pattern scan error (non-fatal): {e}")
 
-        # Deduplicate by title+location
-        seen = set()
-        unique = []
+        # Deduplicate by rule_id + title + category
+        from collections import defaultdict
+        grouped = defaultdict(lambda: {"locations": [], "snippets": [], "severities": set()})
+        
         for f in findings:
-            key = (f.get("title", ""), f.get("location", ""))
-            if key not in seen:
-                seen.add(key)
-                unique.append(f)
+            rule_id = f.get("rule_id", f.get("title", ""))
+            key = (rule_id, f.get("title", ""), f.get("category", ""))
+            grouped[key]["locations"].append(f.get("location", ""))
+            grouped[key]["snippets"].append(f.get("code_snippet", ""))
+            grouped[key]["severities"].add(f.get("severity", "medium"))
+            # Keep the first finding's metadata
+            if "metadata" not in grouped[key]:
+                grouped[key]["metadata"] = {k: v for k, v in f.items() if k not in ["location", "code_snippet"]}
+        
+        unique = []
+        for (rule_id, title, category), group in grouped.items():
+            metadata = group["metadata"]
+            # Use the highest severity
+            severity_order = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+            highest_sev = max(group["severities"], key=lambda s: severity_order.get(s, 0))
+            
+            # Collapse locations into a comma-separated list
+            locations_str = ", ".join(set(group["locations"]))[:3]  # Show up to 3 unique locations
+            if len(set(group["locations"])) > 3:
+                locations_str += f" (+{len(set(group['locations'])) - 3} more)"
+            
+            metadata["severity"] = highest_sev
+            metadata["location"] = locations_str
+            metadata["description"] = f"{metadata.get('description', '')} Affected files: {len(set(group['locations']))}"
+            metadata["code_snippet"] = group["snippets"][0][:200] if group["snippets"] else ""
+            unique.append(metadata)
+
+        # ── 5. Third-party library CVE detection ──────────────────────────────
+        try:
+            progress("Detecting third-party libraries and known CVEs...")
+            lib_findings = await asyncio.get_event_loop().run_in_executor(
+                None, self._detect_library_cves, decompile_dir, target
+            )
+            findings.extend(lib_findings)
+            progress(f"Library CVE scan: {len(lib_findings)} issues")
+        except Exception as e:
+            progress(f"Library CVE scan error (non-fatal): {e}")
+
+        # ── 6. Calculate malware risk score ──────────────────────────────────
+        malware_score = self._calculate_malware_score(unique, manifest_path)
+        progress(f"Malware risk score: {malware_score}/100")
 
         progress(f"Analysis complete: {len(unique)} total findings")
 
         return ToolResult(
             success=True,
-            output=json.dumps({"findings": unique}),
+            output=json.dumps({
+                "findings": unique,
+                "malware_score": malware_score,
+                "score_label": self._score_label(malware_score),
+            }),
             error="",
             duration_ms=self._elapsed_ms(),
             artifacts_path=output_path,
@@ -228,6 +332,7 @@ class APKAnalyzerRunner(ToolRunner):
                         "high", "Configuration",
                         "The application has android:debuggable=\"true\". This allows remote debugging in production.",
                         "AndroidManifest.xml", "M8", "CWE-489",
+                        rule_id="manifest_debuggable"
                     ))
                 if attr(app, "allowBackup") == "true":
                     findings.append(self._finding(
@@ -235,6 +340,7 @@ class APKAnalyzerRunner(ToolRunner):
                         "medium", "Configuration",
                         "android:allowBackup=\"true\" allows data extraction via ADB backup without root.",
                         "AndroidManifest.xml", "M2", "CWE-530",
+                        rule_id="manifest_allowbackup"
                     ))
                 if attr(app, "usesCleartextTraffic") == "true":
                     findings.append(self._finding(
@@ -242,6 +348,7 @@ class APKAnalyzerRunner(ToolRunner):
                         "high", "Network",
                         "android:usesCleartextTraffic=\"true\" permits HTTP connections.",
                         "AndroidManifest.xml", "M3", "CWE-319",
+                        rule_id="manifest_cleartext"
                     ))
                 # Exported components
                 for tag in ("activity", "service", "receiver", "provider"):
@@ -255,7 +362,8 @@ class APKAnalyzerRunner(ToolRunner):
                                 "high", "IPC",
                                 f"Component '{comp_name}' is exported without a permission guard, allowing any app to interact with it.",
                                 f"AndroidManifest.xml#{comp_name}", "M1", "CWE-926",
-                                snippet=f'<{tag} android:name="{comp_name}" android:exported="true">'
+                                snippet=f'<{tag} android:name="{comp_name}" android:exported="true">',
+                                rule_id=f"manifest_exported_{tag}"
                             ))
 
             # Permissions
@@ -269,7 +377,8 @@ class APKAnalyzerRunner(ToolRunner):
                         sev, "Permissions",
                         f"App requests the dangerous permission '{perm}'. Ensure this is strictly required.",
                         "AndroidManifest.xml", owasp, cwe,
-                        snippet=f'<uses-permission android:name="{perm}"/>'
+                        snippet=f'<uses-permission android:name="{perm}"/>',
+                        rule_id=f"manifest_permission_{short}"
                     ))
 
         except ET.ParseError as e:
@@ -296,6 +405,7 @@ class APKAnalyzerRunner(ToolRunner):
                             "high", "Cryptography",
                             f"APK is signed with weak hash algorithm {sig_alg}. Use SHA-256 or stronger.",
                             "META-INF/", "M5", "CWE-327",
+                            rule_id="androguard_cert_weak"
                         ))
             except Exception:
                 pass
@@ -309,6 +419,7 @@ class APKAnalyzerRunner(ToolRunner):
                         "medium", "Configuration",
                         f"minSdkVersion={min_sdk} supports Android versions with known vulnerabilities. Set to at least 21 (Android 5.0).",
                         "AndroidManifest.xml", "M8", "CWE-693",
+                        rule_id="androguard_min_sdk"
                     ))
             except Exception:
                 pass
@@ -344,6 +455,7 @@ class APKAnalyzerRunner(ToolRunner):
                                     title, sev, cat,
                                     f"Detected call to {callee_class}.{callee_method}() from {caller}.",
                                     caller.replace("/", ".").replace(";", ""), owasp, cwe,
+                                    rule_id=f"androguard_call_{callee_class.replace('/', '_').replace(';', '')}"
                                 ))
                                 reported_classes.add(cls_name)
                                 break
@@ -369,9 +481,20 @@ class APKAnalyzerRunner(ToolRunner):
             for file in src_dir.rglob("*.smali"):
                 try:
                     text = file.read_text(errors="ignore")
-                    for pattern, title, sev, cat, owasp, cwe in SECURITY_PATTERNS:
+                    for idx, (pattern, title, sev, cat, owasp, cwe) in enumerate(SECURITY_PATTERNS):
                         match = re.search(pattern, text)
                         if match:
+                            # Check if URL matches safe patterns
+                            if title == "Cleartext HTTP Traffic":
+                                matched_url = match.group(0)
+                                if any(re.search(safe_pattern, matched_url) for safe_pattern in SAFE_URL_PATTERNS):
+                                    continue  # Skip known-safe URLs
+                            
+                            # Downgrade HTTP URLs in resource XML files to INFO
+                            actual_sev = sev
+                            if title == "Cleartext HTTP Traffic" and self._is_resource_xml_file(str(file)):
+                                actual_sev = "info"
+                            
                             # Grab surrounding context line
                             lines = text.splitlines()
                             match_line = next(
@@ -379,10 +502,11 @@ class APKAnalyzerRunner(ToolRunner):
                             ).strip()[:200]
                             rel = str(file.relative_to(decompile_dir))
                             findings.append(self._finding(
-                                title, sev, cat,
+                                title, actual_sev, cat,
                                 f"Pattern match in {rel}: {match_line}",
                                 rel, owasp, cwe,
                                 snippet=match_line,
+                                rule_id=f"pattern_{idx}"  # Add rule_id for deduplication
                             ))
                     files_checked += 1
                 except Exception:
@@ -395,16 +519,29 @@ class APKAnalyzerRunner(ToolRunner):
                     if name.startswith(("assets/", "res/")) and name.endswith((".xml", ".json", ".properties", ".txt")):
                         try:
                             text = z.read(name).decode("utf-8", errors="ignore")
-                            for pattern, title, sev, cat, owasp, cwe in SECURITY_PATTERNS:
-                                if re.search(pattern, text):
+                            for idx, (pattern, title, sev, cat, owasp, cwe) in enumerate(SECURITY_PATTERNS):
+                                match = re.search(pattern, text)
+                                if match:
+                                    # Check if URL matches safe patterns
+                                    if title == "Cleartext HTTP Traffic":
+                                        matched_url = match.group(0)
+                                        if any(re.search(safe_pattern, matched_url) for safe_pattern in SAFE_URL_PATTERNS):
+                                            continue  # Skip known-safe URLs
+                                    
+                                    # Downgrade HTTP URLs in resource XML files to INFO
+                                    actual_sev = sev
+                                    if title == "Cleartext HTTP Traffic" and self._is_resource_xml_file(name):
+                                        actual_sev = "info"
+                                    
                                     match_line = next(
                                         (l.strip() for l in text.splitlines() if re.search(pattern, l)), ""
                                     )[:200]
                                     findings.append(self._finding(
-                                        title, sev, cat,
+                                        title, actual_sev, cat,
                                         f"Pattern match in {name}: {match_line}",
                                         name, owasp, cwe,
                                         snippet=match_line,
+                                        rule_id=f"pattern_{idx}"  # Add rule_id for deduplication
                                     ))
                         except Exception:
                             pass
@@ -413,11 +550,158 @@ class APKAnalyzerRunner(ToolRunner):
 
         return findings
 
+    # ── Library CVE Detection ─────────────────────────────────────────────────
+
+    def _detect_library_cves(self, decompile_dir: Path, apk_path: Path) -> List[Dict]:
+        """Detect known vulnerable third-party libraries from smali paths."""
+        findings = []
+        detected_libs = set()
+
+        # Scan smali directories for library package prefixes
+        smali_dirs = list(decompile_dir.glob("smali*/**"))
+        for smali_dir in smali_dirs:
+            if not smali_dir.is_dir():
+                continue
+            for subdir in smali_dir.iterdir():
+                if not subdir.is_dir():
+                    continue
+                # Convert path to package notation (e.g., smali/com/google/ → com.google)
+                rel_parts = subdir.relative_to(smali_dir).parts
+                pkg_prefix = "/".join(rel_parts)
+
+                for lib_name, vulns in LIBRARY_VULNERABILITIES.items():
+                    if lib_name.lower() in pkg_prefix.lower() and lib_name not in detected_libs:
+                        detected_libs.add(lib_name)
+                        # Try to find version info from common metadata files
+                        version = self._guess_library_version(decompile_dir, lib_name)
+                        # Report each known CVE for this library
+                        for v_ver, cve, sev, desc in vulns:
+                            # If we found a version, warn only if it's <= known vulnerable version
+                            if version:
+                                try:
+                                    if self._version_cmp(version, v_ver) <= 0:
+                                        findings.append(self._finding(
+                                            f"Vulnerable Library: {lib_name} {version} — {cve}",
+                                            sev, "Dependencies",
+                                            f"Detected {lib_name} v{version}. {desc}. "
+                                            f"Upgrade to a patched version. "
+                                            f"(Known vulnerable: <= {v_ver})",
+                                            f"smali/{pkg_prefix}", "M7", "CWE-1104",
+                                            snippet=f"{lib_name}:{version}",
+                                            rule_id=f"lib_cve_{lib_name}_{cve}"
+                                        ))
+                                    continue
+                                except Exception:
+                                    pass
+                            # If version unknown, still report as informational
+                            findings.append(self._finding(
+                                f"Potentially Vulnerable Library: {lib_name} — {cve}",
+                                "info" if not version else sev, "Dependencies",
+                                f"Detected {lib_name} library. {desc}. "
+                                f"Verify version is > {v_ver}. "
+                                f"(Version detection failed — manual review recommended.)",
+                                f"smali/{pkg_prefix}", "M7", "CWE-1104",
+                                snippet=pkg_prefix,
+                                rule_id=f"lib_cve_{lib_name}_{cve}"
+                            ))
+
+        return findings
+
+    def _guess_library_version(self, decompile_dir: Path, lib_name: str) -> str:
+        """Attempt to extract version from common metadata files."""
+        # Check gradle files, pom.xml, library.properties
+        patterns = [
+            (r'.*\.properties', rf'{re.escape(lib_name)}.*version\s*=\s*([0-9.]+)'),
+            (r'.*pom\.xml', rf'<artifactId>{re.escape(lib_name)}.*?</artifactId>.*?<version>([0-9.]+)</version>'),
+            (r'.*\.gradle', rf'{re.escape(lib_name)}:([0-9.]+)'),
+            (r'.*\.pro', rf'{re.escape(lib_name)}.*?([0-9]+\.[0-9]+)'),
+        ]
+        for ext, version_re in patterns:
+            for f in decompile_dir.rglob(ext):
+                try:
+                    text = f.read_text(errors="ignore")
+                    match = re.search(version_re, text, re.DOTALL | re.IGNORECASE)
+                    if match:
+                        return match.group(1)
+                except Exception:
+                    pass
+        return ""
+
+    @staticmethod
+    def _version_cmp(v1: str, v2: str) -> int:
+        """Compare two version strings. Returns -1, 0, or 1."""
+        def normalize(v):
+            return [int(x) for x in re.sub(r'[^0-9.]', '', v).split('.') if x][:4]
+        a, b = normalize(v1), normalize(v2)
+        for i in range(max(len(a), len(b))):
+            av = a[i] if i < len(a) else 0
+            bv = b[i] if i < len(b) else 0
+            if av < bv:
+                return -1
+            if av > bv:
+                return 1
+        return 0
+
+    # ── Malware Risk Scoring ──────────────────────────────────────────────────
+
+    def _calculate_malware_score(self, findings: List[Dict], manifest_path: Path) -> int:
+        """Calculate a 0-100 malware risk score based on findings."""
+        score = 0
+
+        severity_weights = {"critical": 25, "high": 10, "medium": 5, "low": 2, "info": 0}
+        for f in findings:
+            sev = f.get("severity", "medium").lower()
+            score += severity_weights.get(sev, 2)
+
+        # Cap at 100
+        return min(score, 100)
+
+    @staticmethod
+    def _score_label(score: int) -> str:
+        if score >= 80:
+            return "critical"
+        if score >= 50:
+            return "high"
+        if score >= 25:
+            return "medium"
+        if score >= 10:
+            return "low"
+        return "safe"
+
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _is_resource_xml_file(self, file_path: str) -> bool:
+        """Check if file is a resource XML file (not code or config)."""
+        # Android resource XML patterns
+        resource_patterns = [
+            r'res/layout/.*\.xml$',
+            r'res/drawable/.*\.xml$',
+            r'res/values/.*\.xml$',
+            r'res/menu/.*\.xml$',
+            r'res/anim/.*\.xml$',
+            r'res/color/.*\.xml$',
+        ]
+        
+        # Exclude important config files
+        excluded = [
+            'AndroidManifest.xml',
+            'network_security_config.xml',
+        ]
+        
+        for excluded_file in excluded:
+            if excluded_file in file_path:
+                return False
+        
+        for pattern in resource_patterns:
+            if re.search(pattern, file_path):
+                return True
+        
+        return False
 
     def _finding(
         self, title: str, severity: str, category: str, description: str,
         location: str, owasp: str = "", cwe: str = "", snippet: str = "",
+        rule_id: str = "",
     ) -> Dict:
         return {
             "title": title,
@@ -429,4 +713,5 @@ class APKAnalyzerRunner(ToolRunner):
             "cwe_mapping": cwe,
             "code_snippet": snippet,
             "tool": "apk_analyzer",
+            "rule_id": rule_id,
         }

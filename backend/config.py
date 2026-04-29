@@ -15,6 +15,15 @@ class Settings(BaseSettings):
     # ── App ──────────────────────────────────────────────────────
     APP_NAME: str = "IRVES"
     DEBUG: bool = False
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def _parse_debug(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.lower() in ("1", "true", "yes", "on")
+        return bool(v)
     ENVIRONMENT: str = "development"
 
     # ── Database ─────────────────────────────────────────────────
@@ -26,13 +35,28 @@ class Settings(BaseSettings):
     FRIDA_PATH: str = "frida"
     MITMPROXY_PATH: str = "mitmproxy"
 
-    # ── MobSF ────────────────────────────────────────────────────
-    MOBSF_URL: str = "http://127.0.0.1:8000"
-    MOBSF_API_KEY: str = ""
-
     # ── AI ───────────────────────────────────────────────────────
+    # We use LiteLLM for routing. Format for AI_MODEL:
+    # "anthropic/claude-3-5-sonnet-20240620"
+    # "openai/gpt-4o"
+    # "ollama/llama3"
+    AI_MODEL: str = "anthropic/claude-3-5-sonnet-20240620"
+    
+    # Generic keys for provider routing
+    AI_API_KEY: str = ""
+    AI_API_BASE: str = ""
+    AI_PROVIDER: str = "anthropic"  # Active provider name (used in UI selection)
+    
+    
+    # Fallbacks that LiteLLM looks for automatically
     ANTHROPIC_API_KEY: str = ""
-    AI_MODEL: str = "claude-sonnet-4-6"
+    OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
+    XAI_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
+    TOGETHER_AI_API_KEY: str = ""
+    HUGGINGFACE_API_KEY: str = ""
 
     # ── Storage ──────────────────────────────────────────────────
     PROJECTS_DIR: str = "~/.irves/projects"
@@ -41,6 +65,14 @@ class Settings(BaseSettings):
     # ── Server ───────────────────────────────────────────────────
     HOST: str = "127.0.0.1"
     PORT: int = 8765
+    SECRET_KEY: str = ""
+    REDIRECT_URI: str = os.getenv("REDIRECT_URI", f"http://{os.getenv('HOST', '127.0.0.1')}:{os.getenv('PORT', '8765')}/api/auth/callback")
+
+    # ── Git Integrations (Platform Level App Auth) ────────────────
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    GITLAB_CLIENT_ID: str = ""
+    GITLAB_CLIENT_SECRET: str = ""
 
     @field_validator("PROJECTS_DIR", "REPORTS_DIR", mode="before")
     @classmethod

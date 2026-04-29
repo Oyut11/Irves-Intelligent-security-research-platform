@@ -22,8 +22,10 @@ BUILTIN_HOOKS = {
         "name": "SSL Pinning Bypass",
         "description": "Bypass SSL certificate pinning for HTTPS interception",
         "script": """
-Java.perform(function() {
-    console.log('[IRVES] SSL Pinning Bypass loaded');
+function initSSLPinningBypass() {
+    if (typeof Java !== 'undefined' && Java.available) {
+        Java.perform(function() {
+            console.log('[IRVES] SSL Pinning Bypass loaded');
 
     // OkHttp CertificatePinner
     try {
@@ -58,16 +60,55 @@ Java.perform(function() {
         };
     } catch (e) {}
 
-    console.log('[IRVES] SSL pinning bypass complete');
-});
+    // Custom TrustManager (Android 7.0+ Network Security Configuration)
+    try {
+        var NetworkSecurityTrustManager = Java.use('android.security.net.config.NetworkSecurityTrustManager');
+        NetworkSecurityTrustManager.checkServerTrusted.overload('[Ljava.security.cert.X509Certificate;', 'java.lang.String').implementation = function(chain, authType) {
+            console.log('[IRVES] Network Security Config SSL error bypassed');
+            return;
+        };
+    } catch (e) {}
+
+    // TrustKit
+    try {
+        var TrustKitManager = Java.use('com.datatheorem.android.trustkit.pinning.OkHostnameVerifier');
+        TrustKitManager.verify.overload('java.lang.String', 'javax.net.ssl.SSLSession').implementation = function(host, session) {
+            console.log('[IRVES] TrustKit SSL pinning bypassed for: ' + host);
+            return true;
+        };
+        TrustKitManager.verify.overload('java.lang.String', 'java.security.cert.X509Certificate').implementation = function(host, cert) {
+            return true;
+        };
+    } catch (e) {}
+
+    // Appcelerator Titanium
+    try {
+        var PinningTrustManager = Java.use('appcelerator.https.PinningTrustManager');
+        PinningTrustManager.checkServerTrusted.implementation = function() {
+            console.log('[IRVES] Appcelerator SSL pinning bypassed');
+            return;
+        };
+    } catch (e) {}
+
+    // Notice for Native Networking (Proxygen/Cronet)
+            console.log('[IRVES] NOTE: Apps using custom C++ networking stacks (Facebook, Google) require native unpinning scripts.');
+            console.log('[IRVES] Java-layer SSL pinning bypass complete');
+        });
+    } else {
+        setTimeout(initSSLPinningBypass, 50);
+    }
+}
+initSSLPinningBypass();
 """,
     },
     "root_detection_bypass": {
         "name": "Root Detection Bypass",
         "description": "Bypass comprehensive root detection mechanisms including Magisk, SafetyNet, ProcessBuilder, and multiple su implementations",
         "script": """
-Java.perform(function() {
-    console.log('[IRVES] Loading comprehensive root detection bypass…');
+function initRootDetectionBypass() {
+    if (typeof Java !== 'undefined' && Java.available) {
+        Java.perform(function() {
+            console.log('[IRVES] Loading comprehensive root detection bypass…');
 
     // ── 1. Root Detection Libraries ───────────────────────────────────────────
     var rootCheckClasses = [
@@ -324,8 +365,13 @@ Java.perform(function() {
         };
     } catch(e) {}
 
-    console.log('[IRVES] Root detection bypass fully loaded (comprehensive)');
-});
+            console.log('[IRVES] Root detection bypass fully loaded (comprehensive)');
+        });
+    } else {
+        setTimeout(initRootDetectionBypass, 50);
+    }
+}
+initRootDetectionBypass();
 """,
     },
     "crypto_capture": {

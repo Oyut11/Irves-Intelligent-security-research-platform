@@ -1,344 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8" />
-    <title>OWASP MASVS Report — {{ project.name }}</title>
-    <style>
-        :root {
-            --bg: #0d0f12;
-            --surface: #161a20;
-            --border: #2a2f38;
-            --text: #e2e6ed;
-            --muted: #6b7280;
-            --accent: #5b8af4;
-            --critical: #ef4444;
-            --high: #f97316;
-            --medium: #eab308;
-            --low: #22c55e;
-            --info: #3b82f6;
-            --pass: #22c55e;
-            --fail: #ef4444;
-        }
+{% block title %}OWASP MASVS Report - {{ project.name }}{% endblock %}
+{% block report_title %}OWASP MASVS Audit Report{% endblock %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block content %}
+<h2>Overview</h2>
+<p>This report maps the discovered vulnerabilities against the OWASP Mobile Application Security Verification Standard (MASVS).</p>
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2.5rem;
-            line-height: 1.6;
-        }
-
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: .25rem;
-        }
-
-        h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--muted);
-            margin: 2rem 0 .75rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: .4rem;
-        }
-
-        h3 {
-            font-size: .9rem;
-            font-weight: 600;
-            margin-bottom: .5rem;
-        }
-
-        .meta {
-            font-size: .8rem;
-            color: var(--muted);
-            margin-bottom: 2rem;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: .72rem;
-            font-weight: 700;
-            letter-spacing: .04em;
-        }
-
-        .badge-pass {
-            background: color-mix(in srgb, var(--pass) 15%, transparent);
-            color: var(--pass);
-            border: 1px solid var(--pass);
-        }
-
-        .badge-fail {
-            background: color-mix(in srgb, var(--fail) 15%, transparent);
-            color: var(--fail);
-            border: 1px solid var(--fail);
-        }
-
-        .badge-critical {
-            background: color-mix(in srgb, var(--critical) 15%, transparent);
-            color: var(--critical);
-            border: 1px solid var(--critical);
-        }
-
-        .badge-high {
-            background: color-mix(in srgb, var(--high) 15%, transparent);
-            color: var(--high);
-            border: 1px solid var(--high);
-        }
-
-        .badge-medium {
-            background: color-mix(in srgb, var(--medium) 15%, transparent);
-            color: var(--medium);
-            border: 1px solid var(--medium);
-        }
-
-        .badge-low {
-            background: color-mix(in srgb, var(--low) 15%, transparent);
-            color: var(--low);
-            border: 1px solid var(--low);
-        }
-
-        .badge-info {
-            background: color-mix(in srgb, var(--info) 15%, transparent);
-            color: var(--info);
-            border: 1px solid var(--info);
-        }
-
-        .summary-bar {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .stat {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: .75rem 1.25rem;
-            min-width: 90px;
-        }
-
-        .stat__label {
-            font-size: .7rem;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .06em;
-        }
-
-        .stat__value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: monospace;
-        }
-
-        .stat__value.critical {
-            color: var(--critical);
-        }
-
-        .stat__value.high {
-            color: var(--high);
-        }
-
-        .stat__value.medium {
-            color: var(--medium);
-        }
-
-        .stat__value.low {
-            color: var(--low);
-        }
-
-        .masvs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: .6rem;
-            margin-bottom: 2rem;
-        }
-
-        .masvs-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: .75rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .masvs-card__name {
-            font-size: .82rem;
-            font-weight: 600;
-        }
-
-        .masvs-card__count {
-            font-size: .75rem;
-            color: var(--muted);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .8rem;
-        }
-
-        th {
-            text-align: left;
-            padding: .5rem .75rem;
-            background: var(--surface);
-            color: var(--muted);
-            font-size: .7rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            border-bottom: 1px solid var(--border);
-        }
-
-        td {
-            padding: .5rem .75rem;
-            border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-            vertical-align: top;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .overall {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-        }
-
-        .overall__label {
-            font-size: .8rem;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            margin-bottom: .4rem;
-        }
-
-        .overall__result {
-            font-size: 2.5rem;
-            font-weight: 800;
-        }
-
-        .overall__result.PASS {
-            color: var(--pass);
-        }
-
-        .overall__result.FAIL {
-            color: var(--fail);
-        }
-
-        footer {
-            margin-top: 3rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-            font-size: .75rem;
-            color: var(--muted);
-        }
-    </style>
-</head>
-
-<body>
-
-    <h1>OWASP MASVS Security Report</h1>
-    <p class="meta">
-        Project: <strong>{{ project.name }}</strong> &nbsp;|&nbsp;
-        Platform: {{ project.platform }} &nbsp;|&nbsp;
-        Generated: {{ generated_at.strftime('%Y-%m-%d %H:%M UTC') }} &nbsp;|&nbsp;
-        Scan: {{ scan_id or 'N/A' }}
-    </p>
-
-    <div class="overall">
-        <div class="overall__label">Overall Compliance</div>
-        <div class="overall__result {{ overall }}">{{ overall }}</div>
+<div class="summary-stats">
+    <div class="stat-box" style="border-top-color: #000;">
+        <div class="stat-num">{{ total_findings }}</div>
+        <div class="stat-label">Total Findings</div>
     </div>
-
-    <div class="summary-bar">
-        <div class="stat">
-            <div class="stat__label">Total Findings</div>
-            <div class="stat__value">{{ total_findings }}</div>
-        </div>
-        <div class="stat">
-            <div class="stat__label">Critical</div>
-            <div class="stat__value critical">{{ severity_counts.get('critical',0) }}</div>
-        </div>
-        <div class="stat">
-            <div class="stat__label">High</div>
-            <div class="stat__value high">{{ severity_counts.get('high',0) }}</div>
-        </div>
-        <div class="stat">
-            <div class="stat__label">Medium</div>
-            <div class="stat__value medium">{{ severity_counts.get('medium',0) }}</div>
-        </div>
-        <div class="stat">
-            <div class="stat__label">Low</div>
-            <div class="stat__value low">{{ severity_counts.get('low',0) }}</div>
-        </div>
+    <div class="stat-box" style="border-top-color: #b91c1c;">
+        <div class="stat-num">{{ severity_counts.critical + severity_counts.high }}</div>
+        <div class="stat-label">Critical / High</div>
     </div>
+    <div class="stat-box" style="background: {{ '#f0fdf4' if overall == 'PASS' else '#eef2ff' }}; border-top-color: {{ '#16a34a' if overall == 'PASS' else '#6366f1' }};">
+        <div class="stat-num" style="color: {{ '#16a34a' if overall == 'PASS' else '#6366f1' }};">{{ overall }}</div>
+        <div class="stat-label">Overall Status</div>
+    </div>
+</div>
 
-    <h2>MASVS Category Results</h2>
-    <div class="masvs-grid">
-        {% for cat, result in masvs_results.items() %}
-        <div class="masvs-card">
-            <div>
-                <div class="masvs-card__name">{{ cat }}</div>
-                <div class="masvs-card__count">{{ masvs_categories[cat]|length }} finding(s)</div>
-            </div>
-            <span class="badge badge-{{ 'pass' if result == 'PASS' else 'fail' }}">{{ result }}</span>
-        </div>
+<h2>MASVS Coverage</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Category</th>
+            <th style="width: 15%; text-align: center;">Status</th>
+            <th style="width: 60%;">Findings Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat, res in masvs_results.items() %}
+        <tr>
+            <td><strong>{{ cat }}</strong></td>
+            <td style="text-align: center; font-weight: bold; color: {{ '#16a34a' if res == 'PASS' else '#dc2626' }};">{{ res }}</td>
+            <td>{{ masvs_categories[cat]|length }} findings</td>
+        </tr>
         {% endfor %}
+    </tbody>
+</table>
+
+<h2>Findings Detail</h2>
+{% for f in findings %}
+<div class="finding-card">
+    <h3 class="finding-title">
+        <span class="severity sev-{{ f.severity|severity_class }}">{{ f.severity_name|default(f.severity) }}</span>
+        {{ f.title }}
+    </h3>
+    <div class="finding-meta">
+        <span class="badge">{{ f.tool }}</span>
+        {% if f.owasp_mapping %}<span class="badge">{{ f.owasp_mapping }}</span>{% endif %}
+        {% if f.cwe_mapping %}<span class="badge">{{ f.cwe_mapping }}</span>{% endif %}
+        <div><strong>Location:</strong> {{ f.location or 'N/A' }}</div>
     </div>
+    <div class="finding-desc">{{ f.description }}</div>
+</div>
+{% endfor %}
 
-    <h2>Findings Detail</h2>
-    {% if findings %}
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Severity</th>
-                <th>Tool</th>
-                <th>OWASP</th>
-                <th>Location</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for f in findings %}
-            {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td><strong>{{ f.title }}</strong><br><span style="color:var(--muted);font-size:.75rem;">{{
-                        f.description[:120] if f.description else '' }}{% if f.description and f.description|length >
-                        120 %}…{% endif %}</span></td>
-                <td><span class="badge badge-{{ sev }}">{{ sev|upper }}</span></td>
-                <td>{{ f.tool }}</td>
-                <td>{{ f.owasp_mapping or '—' }}</td>
-                <td style="font-family:monospace;font-size:.75rem;word-break:break-all;">{{ f.location or '—' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color:var(--muted);font-style:italic;">No findings to display.</p>
-    {% endif %}
-
-    <footer>
-        Generated by IRVES · {{ generated_at.strftime('%Y-%m-%d') }} · Report is confidential
-    </footer>
-</body>
-
-</html>
+{% endblock %}

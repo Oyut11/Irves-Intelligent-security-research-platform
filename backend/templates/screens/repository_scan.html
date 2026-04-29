@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Repository Scan Results — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">📁 Repository Analysis</h1>
+            <p class="page-header__subtitle" id="repo-subtitle">{{ project.name }} — {{ project.repo_branch }}</p>
+        </div>
+        <div style="display:flex;gap:var(--sp-3);">
+            <a href="/dashboard?project={{ project.id }}" class="btn btn--ghost">
+                ← Back to Dashboard
+            </a>
+            <button class="btn btn--primary" onclick="refreshAnalysis()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 4v6h-6M1 20v-6h6"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Refresh Analysis
+            </button>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:var(--sp-6);">
+        <!-- Left Sidebar: Repo Info -->
+        <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <!-- Repository Stats Card -->
+            <div class="card" style="padding:var(--sp-4);">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:var(--sp-3);color:var(--text-secondary);">Repository Stats</h3>
+
+                <div id="repo-stats-loading" style="color:var(--text-muted);font-size:12px;">Loading...</div>
+
+                <div id="repo-stats-content" style="display:none;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3);margin-bottom:var(--sp-4);">
+                        <div style="text-align:center;padding:var(--sp-3);background:var(--surface);border-radius:var(--radius);">
+                            <div style="font-size:20px;font-weight:700;color:var(--accent);" id="stat-files">-</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Files</div>
+                        </div>
+                        <div style="text-align:center;padding:var(--sp-3);background:var(--surface);border-radius:var(--radius);">
+                            <div style="font-size:20px;font-weight:700;color:var(--accent);" id="stat-commits">-</div>
+                            <div style="font-size:11px;color:var(--text-muted);">Commits</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:var(--sp-3);">
+                        <div style="font-size:11px;color:var(--text-muted);margin-bottom:var(--sp-1);">Languages</div>
+                        <div id="repo-languages" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+                    </div>
+
+                    <div style="font-size:12px;color:var(--text-muted);">
+                        <div style="margin-bottom:var(--sp-1);">Branch: <span id="repo-branch" class="font-mono">{{ project.repo_branch }}</span></div>
+                        <div>Size: <span id="repo-size">-</span> MB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scan Status -->
+            <div class="card" style="padding:var(--sp-4);">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:var(--sp-3);color:var(--text-secondary);">Latest Scan</h3>
+                <div id="scan-status-content">
+                    {% if scan %}
+                    <div style="display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-3);">
+                        <span class="severity-badge severity-badge--{{ scan.status.value }}">{{ scan.status.value }}</span>
+                        <span style="font-size:12px;color:var(--text-muted);">{{ scan.progress }}%</span>
+                    </div>
+                    <div class="progress-bar" style="margin-bottom:var(--sp-3);">
+                        <div class="progress-bar__fill" style="width:{{ scan.progress }}%;"></div>
+                    </div>
+                    {% else %}
+                    <p style="color:var(--text-muted);font-size:12px;">No scan initiated yet.</p>
+                    <button class="btn btn--primary btn--sm" style="width:100%;margin-top:var(--sp-3);" onclick="startScan()">
+                        Start Scan
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card" style="padding:var(--sp-4);">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:var(--sp-3);color:var(--text-secondary);">Quick Actions</h3>
+                <div style="display:flex;flex-direction:column;gap:var(--sp-2);">
+                    <button class="btn btn--ghost btn--sm" onclick="runSemgrep()">
+                        🔍 Run Semgrep (SAST)
+                    </button>
+                    <button class="btn btn--ghost btn--sm" onclick="runGitLeaks()">
+                        🔑 Run GitLeaks (Secrets)
+                    </button>
+                    <button class="btn btn--ghost btn--sm" onclick="viewCommitHistory()">
+                        📜 View Commit History
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <!-- Analysis Tabs -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface-raised);">
+                    <button class="repo-tab active" data-tab="findings" onclick="switchTab('findings')">
+                        🔍 Findings
+                        <span class="tab-badge" id="findings-count">0</span>
+                    </button>
+                    <button class="repo-tab" data-tab="secrets" onclick="switchTab('secrets')">
+                        🔑 Secrets
+                        <span class="tab-badge" id="secrets-count">0</span>
+                    </button>
+                    <button class="repo-tab" data-tab="sast" onclick="switchTab('sast')">
+                        🛡️ SAST
+                        <span class="tab-badge" id="sast-count">0</span>
+                    </button>
+                    <button class="repo-tab" data-tab="dependencies" onclick="switchTab('dependencies')">
+                        📦 Dependencies
+                    </button>
+                </div>
+
+                <!-- Tab Content: Findings -->
+                <div id="tab-findings" class="tab-content" style="padding:var(--sp-4);">
+                    <div id="findings-list">
+                        <div style="text-align:center;padding:var(--sp-8);color:var(--text-muted);">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom:var(--sp-3);opacity:0.3;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4"/>
+                                <path d="M12 8h.01"/>
+                            </svg>
+                            <p>No findings yet. Start a scan to analyze the repository.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Secrets -->
+                <div id="tab-secrets" class="tab-content" style="display:none;padding:var(--sp-4);">
+                    <div id="secrets-list">
+                        <div style="text-align:center;padding:var(--sp-8);color:var(--text-muted);">
+                            <p>Run GitLeaks to scan for secrets in commit history.</p>
+                            <button class="btn btn--primary btn--sm" style="margin-top:var(--sp-3);" onclick="runGitLeaks()">
+                                Scan for Secrets
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: SAST -->
+                <div id="tab-sast" class="tab-content" style="display:none;padding:var(--sp-4);">
+                    <div id="sast-list">
+                        <div style="text-align:center;padding:var(--sp-8);color:var(--text-muted);">
+                            <p>Run Semgrep for static application security testing.</p>
+                            <button class="btn btn--primary btn--sm" style="margin-top:var(--sp-3);" onclick="runSemgrep()">
+                                Run SAST
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Dependencies -->
+                <div id="tab-dependencies" class="tab-content" style="display:none;padding:var(--sp-4);">
+                    <div id="dependencies-list">
+                        <div style="text-align:center;padding:var(--sp-8);color:var(--text-muted);">
+                            <p>Dependency analysis will scan for known vulnerabilities in packages.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analysis Panel -->
+            <div class="card" style="padding:var(--sp-4);">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:var(--sp-3);color:var(--text-secondary);">🤖 AI Analysis</h3>
+                <div id="ai-analysis-content">
+                    <p style="color:var(--text-muted);font-size:13px;margin-bottom:var(--sp-3);">
+                        Let IRVES AI analyze the repository structure and suggest security improvements.
+                    </p>
+                    <button class="btn btn--primary btn--sm" onclick="runAIAnalysis()">
+                        Generate AI Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.repo-tab {
+    padding: var(--sp-3) var(--sp-4);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    transition: all 0.2s;
+}
+.repo-tab:hover {
+    color: var(--text-primary);
+    background: var(--surface);
+}
+.repo-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--surface);
+}
+.tab-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+</style>
+
+<script>
+    const projectId = "{{ project.id }}";
+    let repoInfo = null;
+
+    // Load repository info on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadRepoInfo();
+    });
+
+    async function loadRepoInfo() {
+        try {
+            const response = await fetch(`/api/repository/${projectId}/info`);
+            if (!response.ok) throw new Error('Failed to load repo info');
+
+            const data = await response.json();
+            repoInfo = data;
+
+            // Update stats
+            document.getElementById('stat-files').textContent = data.file_count || 0;
+            document.getElementById('stat-commits').textContent = data.commit_count || 0;
+            document.getElementById('repo-size').textContent = data.total_size_mb || 0;
+
+            // Update languages
+            const languagesContainer = document.getElementById('repo-languages');
+            if (data.languages && Object.keys(data.languages).length > 0) {
+                languagesContainer.innerHTML = Object.entries(data.languages)
+                    .slice(0, 5)
+                    .map(([lang, count]) => `
+                        <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface);color:var(--text-muted);">
+                            ${lang}: ${count}
+                        </span>
+                    `).join('');
+            } else {
+                languagesContainer.innerHTML = '<span style="font-size:11px;color:var(--text-muted);">No data</span>';
+            }
+
+            // Show content, hide loading
+            document.getElementById('repo-stats-loading').style.display = 'none';
+            document.getElementById('repo-stats-content').style.display = 'block';
+
+        } catch (err) {
+            console.error('Failed to load repo info:', err);
+            document.getElementById('repo-stats-loading').textContent = 'Failed to load';
+        }
+    }
+
+    function switchTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.repo-tab').forEach(el => el.classList.remove('active'));
+
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).style.display = 'block';
+        document.querySelector(`.repo-tab[data-tab="${tabName}"]`).classList.add('active');
+    }
+
+    function startScan() {
+        window.location.href = `/live_scan?project_id=${projectId}`;
+    }
+
+    function refreshAnalysis() {
+        loadRepoInfo();
+        // TODO: Reload findings
+    }
+
+    async function runSemgrep() {
+        try {
+            const response = await fetch(`/api/repository/${projectId}/scan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scan_type: 'sast-only' })
+            });
+
+            if (!response.ok) throw new Error('Failed to start scan');
+
+            const data = await response.json();
+            window.irves?.showToast('Semgrep SAST scan started');
+
+            // Switch to SAST tab
+            switchTab('sast');
+
+        } catch (err) {
+            console.error('Failed to run Semgrep:', err);
+            window.irves?.showToast('Failed to start scan');
+        }
+    }
+
+    async function runGitLeaks() {
+        try {
+            const response = await fetch(`/api/repository/${projectId}/scan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scan_type: 'secrets-only' })
+            });
+
+            if (!response.ok) throw new Error('Failed to start scan');
+
+            const data = await response.json();
+            window.irves?.showToast('GitLeaks secrets scan started');
+
+            // Switch to secrets tab
+            switchTab('secrets');
+
+        } catch (err) {
+            console.error('Failed to run GitLeaks:', err);
+            window.irves?.showToast('Failed to start scan');
+        }
+    }
+
+    function viewCommitHistory() {
+        // TODO: Show commit history modal
+        window.irves?.showToast('Commit history view coming soon');
+    }
+
+    function runAIAnalysis() {
+        // TODO: Trigger AI analysis
+        window.irves?.showToast('AI analysis coming soon');
+    }
+</script>
+{% endblock %}

@@ -34,3 +34,5 @@ Thumbs.db
 backend/uploads/
 backend/scan_output/
 backend/reports/generated/
+*.log
+*.pdf

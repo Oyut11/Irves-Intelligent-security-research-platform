@@ -12,10 +12,10 @@
   "use strict";
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
-  const layout   = document.getElementById("app-layout");
-  const toggle   = document.getElementById("sidebar-toggle");
-  const palette  = document.getElementById("command-palette");
-  const pInput   = document.getElementById("palette-input");
+  const layout = document.getElementById("app-layout");
+  const toggle = document.getElementById("sidebar-toggle");
+  const palette = document.getElementById("command-palette");
+  const pInput = document.getElementById("palette-input");
   const dropZone = document.getElementById("drop-zone");
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
@@ -41,13 +41,12 @@
 
   // ── Command Palette ───────────────────────────────────────────────────────
   const NAV_ITEMS = [
-    { label: "Projects",          href: "/",          icon: "folder" },
-    { label: "New Scan",          href: "/scan",       icon: "search" },
-    { label: "Live Scan View",    href: "/live-scan",  icon: "activity" },
-    { label: "Runtime Workspace", href: "/runtime",    icon: "cpu" },
-    { label: "Dashboard",         href: "/dashboard",  icon: "grid" },
-    { label: "Reports",           href: "/reports",    icon: "file-text" },
-    { label: "Settings",          href: "/settings",   icon: "settings" },
+    { label: "Projects", href: "/", icon: "folder" },
+    { label: "New Scan", href: "/scan", icon: "search" },
+    { label: "Runtime Workspace", href: "/runtime", icon: "cpu" },
+    { label: "Dashboard", href: "/dashboard", icon: "grid" },
+    { label: "Reports", href: "/reports", icon: "file-text" },
+    { label: "Settings", href: "/settings", icon: "settings" },
   ];
 
   function openPalette() {
@@ -141,8 +140,10 @@
     });
 
     function detectPlatform(ext) {
-      const map = { ".apk": "android", ".ipa": "ios", ".exe": "desktop",
-                    ".msi": "desktop", ".dmg": "desktop", ".deb": "desktop", ".rpm": "desktop" };
+      const map = {
+        ".apk": "android", ".ipa": "ios", ".exe": "desktop",
+        ".msi": "desktop", ".dmg": "desktop", ".deb": "desktop", ".rpm": "desktop"
+      };
       return map[ext] || "desktop";
     }
   }
@@ -162,14 +163,149 @@
   // Expose globally for HTMX use
   window.irves = { showToast, openPalette, closePalette, toggleSidebar };
 
-  // ── Active nav highlight ──────────────────────────────────────────────────
-  const currentPath = window.location.pathname;
-  document.querySelectorAll("[data-nav-href]").forEach(el => {
-    const href = el.getAttribute("data-nav-href");
-    if (currentPath === href || (href !== "/" && currentPath.startsWith(href))) {
-      el.classList.add("active");
+  // ── SPA Window Manager (Preserve State) ───────────────────────────────────
+  const isHeadless = new URLSearchParams(window.location.search).get('headless') === 'true';
+
+  if (!isHeadless) {
+    const frames = {};
+    const mainContainer = document.getElementById('main-content');
+
+    // Encapsulate the initially loaded server content into the first frame
+    const initialWrapper = document.createElement('div');
+    initialWrapper.className = 'screen-frame';
+    initialWrapper.style.width = '100%';
+    initialWrapper.style.height = '100%';
+
+    while (mainContainer.firstChild) {
+      initialWrapper.appendChild(mainContainer.firstChild);
     }
-  });
+    mainContainer.appendChild(initialWrapper);
+    frames[window.location.pathname + window.location.search] = initialWrapper;
+
+    // ── Centralized SPA Navigation ──────────────────────────────────────
+    function navigateTo(href) {
+      if (!href) return;
+      const currentUrl = window.location.pathname + window.location.search;
+      if (href === currentUrl) return;
+
+      let pathKey = href;
+      const basePath = href.split('?')[0];
+
+      // Runtime and Network are singletons; they manage state explicitly via url_update
+      if (basePath === '/runtime' || basePath === '/network') {
+          pathKey = basePath;
+      } else if (!frames[pathKey]) {
+          // If accessing an endpoint like /dashboard explicitly without params, 
+          // try to rescue/reuse the active project frame if one exists
+          if (!href.includes('?')) {
+              const fallbackKey = Object.keys(frames).find(k => k.split('?')[0] === basePath);
+              if (fallbackKey) {
+                  pathKey = fallbackKey;
+                  href = fallbackKey; // Sync the browser URL to the actual cached frame content
+              }
+          }
+      }
+
+      // Hide all frames
+      Object.values(frames).forEach(f => { f.style.display = 'none'; });
+
+      // Show existing or create new iframe
+      if (frames[pathKey]) {
+        frames[pathKey].style.display = 'block';
+        // If it's an iframe, tell it the URL changed so it can react without reloading
+        if (frames[pathKey].contentWindow) {
+          frames[pathKey].contentWindow.postMessage({ type: 'url_update', href }, '*');
+        } else {
+          // For the initialWrapper, just dispatch an event
+          window.dispatchEvent(new CustomEvent('url_update', { detail: { href } }));
+        }
+      } else {
+        const iframe = document.createElement('iframe');
+        const sep = href.includes('?') ? '&' : '?';
+        iframe.src = href + sep + 'headless=true';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.className = 'screen-frame';
+        mainContainer.appendChild(iframe);
+        frames[pathKey] = iframe;
+      }
+
+      // Update UI active states in sidebar
+      document.querySelectorAll('.nav-item').forEach(n => {
+        const itemHref = n.getAttribute('href');
+        // Highlight if paths match (ignoring query params for basic nav highlighting)
+        const isActive = href.split('?')[0] === itemHref.split('?')[0];
+        n.classList.toggle('active', isActive);
+      });
+
+      // Update URL without reloading the browser
+      window.history.pushState({}, '', href);
+    }
+
+    // Intercept all internal links in the main window
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      // Only intercept relative paths or same-origin paths, skipping hashes/external/downloads
+      if (!href || href.startsWith('http') || href.startsWith('#') || link.getAttribute('target') === '_blank' || link.hasAttribute('download')) return;
+
+      e.preventDefault();
+      navigateTo(href);
+    });
+
+    // Handle messages from headless iframes
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'navigate') {
+        navigateTo(e.data.href);
+      }
+    });
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', () => {
+      const path = window.location.pathname;
+      document.querySelectorAll('.nav-item').forEach(n => {
+        const itemHref = n.getAttribute('href');
+        n.classList.toggle('active', itemHref.split('?')[0] === path.split('?')[0]);
+      });
+      Object.values(frames).forEach(f => { f.style.display = 'none'; });
+      
+      const fullHref = window.location.pathname + window.location.search;
+      let pathKey = fullHref;
+      const basePath = path.split('?')[0];
+
+      // Runtime and Network are singletons
+      if (basePath === '/runtime' || basePath === '/network') {
+          pathKey = basePath;
+      }
+
+      if (frames[pathKey]) {
+          frames[pathKey].style.display = 'block';
+          if (frames[pathKey].contentWindow) {
+              frames[pathKey].contentWindow.postMessage({ type: 'url_update', href: fullHref }, '*');
+          } else {
+              window.dispatchEvent(new CustomEvent('url_update', { detail: { href: fullHref } }));
+          }
+      }
+    });
+  } else {
+    // ── Headless Mode (inside an iframe) ───────────────────────────────
+    document.body.classList.add('headless-mode');
+
+    // Intercept all internal clicks and notify the parent instead of navigating locally
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (!link) return;
+
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('http') || href.startsWith('#') || link.getAttribute('target') === '_blank') return;
+
+      e.preventDefault();
+      window.parent.postMessage({ type: 'navigate', href }, '*');
+    });
+  }
 
   // ── Pending file (from drop on another page) ──────────────────────────────
   const pendingFile = sessionStorage.getItem("pending_file");

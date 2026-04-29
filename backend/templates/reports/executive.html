@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Executive Summary - {{ project.name }}{% endblock %}
+{% block report_title %}Executive Vulnerability Summary{% endblock %}
+
+{% block content %}
+<h2>Executive Overview</h2>
+<p>This report provides a high-level summary of the security posture for <strong>{{ project.name }}</strong> ({{ project.package_name }}).</p>
+
+<div class="summary-stats">
+    <div class="stat-box" style="border-top-color: #333;">
+        <div class="stat-num">{{ total_findings }}</div>
+        <div class="stat-label">Total Risks Identified</div>
+    </div>
+    <div class="stat-box" style="border-top-color: #b91c1c;">
+        <div class="stat-num" style="color: #b91c1c;">{{ critical_high_count }}</div>
+        <div class="stat-label">Critical / High Risks</div>
+    </div>
+    <div class="stat-box" style="border-top-color: #0369a1;">
+        <div class="stat-num">{{ severity_counts.low + severity_counts.info }}</div>
+        <div class="stat-label">Low / Info Risks</div>
+    </div>
+</div>
+
+<h2>Top Critical Issues</h2>
+<p>The following issues represent the highest risk to the application and should be prioritized for remediation.</p>
+
+{% if not top_findings %}
+<div style="padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center;">
+    <strong>No Critical or High vulnerabilities detected.</strong>
+</div>
+{% else %}
+<table>
+    <thead>
+        <tr>
+            <th style="width: 15%;">Severity</th>
+            <th style="width: 40%;">Finding Title</th>
+            <th style="width: 45%;">Impact / Description Summary</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for f in top_findings %}
+        <tr>
+            <td><span class="severity sev-{{ f.severity|severity_class }}">{{ f.severity_name|default(f.severity) }}</span></td>
+            <td><strong>{{ f.title }}</strong></td>
+            <td style="font-size: 10pt;">{{ (f.description[:150] + '...') if f.description and f.description|length > 150 else f.description }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<h2>Risk Breakdown</h2>
+<table style="width: 50%;">
+    <tr><th>Severity</th><th>Count</th></tr>
+    <tr><td><span class="severity sev-critical">Critical</span></td><td>{{ severity_counts.critical }}</td></tr>
+    <tr><td><span class="severity sev-high">High</span></td><td>{{ severity_counts.high }}</td></tr>
+    <tr><td><span class="severity sev-medium">Medium</span></td><td>{{ severity_counts.medium }}</td></tr>
+    <tr><td><span class="severity sev-low">Low</span></td><td>{{ severity_counts.low }}</td></tr>
+    <tr><td><span class="severity sev-info">Info</span></td><td>{{ severity_counts.info }}</td></tr>
+</table>
+
+{% endblock %}

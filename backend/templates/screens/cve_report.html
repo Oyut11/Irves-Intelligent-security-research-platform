@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}CVE Findings Report — IRVES{% endblock %}
+
+{% block content %}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">CVE Findings Report</h1>
+            <p class="page-header__subtitle">
+                {% if project %}{{ project.name }}{% else %}Select a project{% endif %}
+                {% if scan %}· Scanned {{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+            </p>
+        </div>
+        <a href="/dashboard{% if project %}?project={{ project.id }}{% endif %}" class="btn btn--ghost">← Dashboard</a>
+    </div>
+
+    <!-- Summary -->
+    <div class="stat-cards" role="list" aria-label="CVE severity summary" style="margin-bottom: var(--sp-6);">
+        <div class="stat-card stat-card--critical" role="listitem">
+            <div class="stat-card__value">{{ cve_counts.critical | default(0) }}</div>
+            <div class="stat-card__label">Critical CVEs</div>
+        </div>
+        <div class="stat-card stat-card--high" role="listitem">
+            <div class="stat-card__value">{{ cve_counts.high | default(0) }}</div>
+            <div class="stat-card__label">High CVEs</div>
+        </div>
+        <div class="stat-card stat-card--medium" role="listitem">
+            <div class="stat-card__value">{{ cve_counts.medium | default(0) }}</div>
+            <div class="stat-card__label">Medium CVEs</div>
+        </div>
+        <div class="stat-card stat-card--low" role="listitem">
+            <div class="stat-card__value">{{ cve_counts.low | default(0) }}</div>
+            <div class="stat-card__label">Low CVEs</div>
+        </div>
+        <div class="stat-card stat-card--info" role="listitem">
+            <div class="stat-card__value">{{ cve_counts.info | default(0) }}</div>
+            <div class="stat-card__label">Needs Review</div>
+        </div>
+    </div>
+
+    <!-- CVE List -->
+    <div class="card">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-4);">
+            Third-Party Library CVEs
+        </div>
+        {% if cve_findings %}
+        <div class="findings-table-wrapper">
+            <table class="findings-table" style="width:100%; font-size:13px;">
+                <thead>
+                    <tr style="color:var(--text-muted); text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">
+                        <th style="padding:8px 12px;">Severity</th>
+                        <th style="padding:8px 12px;">Library</th>
+                        <th style="padding:8px 12px;">CVE ID</th>
+                        <th style="padding:8px 12px;">Description</th>
+                        <th style="padding:8px 12px;">Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in cve_findings %}
+                    <tr style="border-top:1px solid var(--border);">
+                        <td style="padding:8px 12px;">
+                            <span class="severity-badge severity--{{ f.severity }}">{{ f.severity }}</span>
+                        </td>
+                        <td style="padding:8px 12px; color:var(--text-primary); font-weight:500;">
+                            {{ f.library_name }}
+                            {% if f.library_version %}<span style="color:var(--text-muted);font-weight:400;">v{{ f.library_version }}</span>{% endif %}
+                        </td>
+                        <td style="padding:8px 12px; font-family:var(--font-mono); font-size:11px; color:var(--accent);">
+                            {{ f.cve_id }}
+                        </td>
+                        <td style="padding:8px 12px; color:var(--text-muted); font-size:12px; max-width:360px;">
+                            {{ f.description | truncate(180) }}
+                        </td>
+                        <td style="padding:8px 12px; color:var(--text-muted); font-family:var(--font-mono); font-size:11px;">
+                            {{ f.location or '—' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="padding:var(--sp-8); text-align:center; color:var(--text-muted);">
+            <div style="font-size:14px; margin-bottom:var(--sp-2);">No CVE findings</div>
+            <div style="font-size:12px; color:var(--text-faint);">
+                Run a static analysis scan to detect vulnerable third-party libraries.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

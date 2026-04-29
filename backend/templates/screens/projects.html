@@ -51,8 +51,21 @@
     <div class="project-grid" id="project-grid" role="list">
 
         {% for project in projects %}
-        <a class="project-card" href="/dashboard?project={{ project.id }}" role="listitem"
+        <a class="project-card"
+            href="{% if project.platform == 'repository' %}/source-analysis?project_id={{ project.id }}{% else %}/dashboard?project={{ project.id }}{% endif %}"
+            role="listitem"
             id="project-card-{{ project.id }}" aria-label="{{ project.name }} — {{ project.platform }} project">
+            
+            <!-- Actions (Edit/Delete) -->
+            <div class="project-card__actions">
+                <button class="action-btn" title="Edit project" onclick="openEditModal('{{ project.id }}', '{{ project.name }}', '{{ project.description or '' }}', event)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="action-btn action-btn--delete" title="Delete project" onclick="deleteProject('{{ project.id }}', event)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            </div>
+
             <!-- Platform badge -->
             <div class="project-card__platform-badge platform-{{ project.platform }}">
                 {% if project.platform == "android" %}
@@ -75,7 +88,7 @@
             </div>
 
             <!-- App name -->
-            <div class="project-card__name" title="{{ project.name }}">{{ project.name }}</div>
+            <div class="project-card__name" id="project-name-{{ project.id }}" title="{{ project.name }}">{{ project.name }}</div>
 
             <!-- Status -->
             <div class="project-card__status">
@@ -105,17 +118,122 @@
 
     </div>
 
-    <!-- Drop zone -->
-    <div class="drop-zone" id="drop-zone" style="margin-top: var(--sp-6);" role="region"
-        aria-label="Drop file to begin scan">
-        <svg width="22" height="22" viewBox="0 0 16 16" fill="none" style="color:var(--text-faint)" aria-hidden="true">
-            <path d="M8 1v9M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"
-                stroke-linejoin="round" />
-            <path d="M2.5 11v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="1.25"
-                stroke-linecap="round" />
-        </svg>
-        <div class="drop-zone__title">Drop file anywhere to start</div>
-        <div class="drop-zone__hint">APK · IPA · EXE · URL</div>
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="palette-overlay" style="z-index: 1000;" role="dialog" aria-modal="true">
+        <div class="card" style="width: 400px; padding: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-5); border: 1px solid var(--border); box-shadow: 0 12px 48px rgba(0,0,0,0.5);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="font-size:16px; font-weight:600;">Edit Project</h2>
+                <button class="btn btn--sm btn--ghost" onclick="closeEditModal()">✕</button>
+            </div>
+            
+            <div class="field">
+                <label class="field__label">Project Name</label>
+                <input type="text" id="edit-name" class="field__input" placeholder="e.g. My Website">
+            </div>
+            
+            <div class="field">
+                <label class="field__label">Description</label>
+                <textarea id="edit-description" class="field__input" style="height: 80px; padding: var(--sp-2) var(--sp-3); resize: none;" placeholder="Project details..."></textarea>
+            </div>
+            
+            <input type="hidden" id="edit-id">
+            
+            <div style="display:flex; justify-content:flex-end; gap:var(--sp-2); margin-top:var(--sp-2);">
+                <button class="btn btn--ghost" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn--primary" id="save-project-btn" onclick="saveProject()">Save Changes</button>
+            </div>
+        </div>
     </div>
-</div>
+
+    </div>
+
+<script>
+    function openEditModal(id, name, desc, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-description').value = desc;
+        document.getElementById('edit-modal').classList.add('open');
+        document.getElementById('edit-name').focus();
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').classList.remove('open');
+    }
+
+    async function saveProject() {
+        const id = document.getElementById('edit-id').value;
+        const name = document.getElementById('edit-name').value.trim();
+        const desc = document.getElementById('edit-description').value.trim();
+        const btn = document.getElementById('save-project-btn');
+
+        if (!name) {
+            window.irves?.showToast('Project name is required');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        try {
+            const res = await fetch(`/api/scan/projects/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description: desc })
+            });
+
+            if (res.ok) {
+                const nameEl = document.getElementById(`project-name-${id}`);
+                if (nameEl) {
+                    nameEl.textContent = name;
+                    nameEl.title = name;
+                }
+                closeEditModal();
+                window.irves?.showToast('Project updated');
+            } else {
+                const err = await res.json();
+                throw new Error(err.detail || 'Update failed');
+            }
+        } catch (err) {
+            window.irves?.showToast('Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+        }
+    }
+
+    async function deleteProject(id, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        if (!confirm('Permanently delete this project and all its security findings? This cannot be undone.')) return;
+
+        try {
+            const res = await fetch(`/api/scan/projects/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                const card = document.getElementById(`project-card-${id}`);
+                if (card) {
+                    card.style.transform = 'scale(0.95)';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 200);
+                }
+                window.irves?.showToast('Project deleted');
+            } else {
+                throw new Error('Failed to delete');
+            }
+        } catch (err) {
+            window.irves?.showToast('Error: ' + err.message);
+        }
+    }
+
+    // Close modal on escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeEditModal();
+    });
+</script>
 {% endblock %}

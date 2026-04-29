@@ -2,7 +2,15 @@
 {% block title %}Dashboard — IRVES{% endblock %}
 
 {% block content %}
-<div class="page">
+<div class="page" 
+     {% if scan and scan.status == "running" %}
+     hx-get="/dashboard?project={{ project.id }}&headless=true"
+     hx-select=".page"
+     hx-target=".page"
+     hx-swap="outerHTML"
+     hx-trigger="every 5s"
+     {% endif %}>
+
     <!-- Header -->
     <div class="page-header">
         <div>
@@ -12,10 +20,24 @@
                 scan.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</p>
             {% else %}
             <h1 class="page-header__title">Dashboard</h1>
-            <p class="page-header__subtitle">No project selected</p>
+            <p class="page-header__subtitle">Select a project to view security insights</p>
             {% endif %}
+
         </div>
-        <div style="display:flex;gap:var(--sp-3);">
+        <div style="display:flex;gap:var(--sp-3);align-items:center;">
+            <button class="btn btn--sm btn--ghost" id="toggle-dash-ai-btn" style="color:var(--accent); border:1px solid rgba(99,102,241,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Irves AI Partner
+            </button>
+            <a href="/malware-report?project={{ project.id if project else '' }}" class="btn btn--sm btn--ghost" style="{% if malware_score is not none %}color:var(--{{ (score_label if score_label in ['critical','high','medium','low','info'] else 'info') }});{% else %}color:var(--text-muted);{% endif %} border:1px solid rgba(255,255,255,0.08);" title="Malware Risk Report">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                {% if malware_score is not none %}Score {{ malware_score }}{% else %}Score —{% endif %}
+            </a>
+            <a href="/cve-report?project={{ project.id if project else '' }}" class="btn btn--sm btn--ghost" style="{% if project and scan %}color:var(--high);{% else %}color:var(--text-muted);{% endif %} border:1px solid rgba(255,255,255,0.08);" title="CVE Findings Report">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                CVEs
+            </a>
+            <div style="width:1px; height:16px; background:var(--border); margin:0 4px;"></div>
             {% if project and scan %}
             <button class="btn btn--ghost" id="rescan-btn"
                 onclick="reScan('{{ project.id }}', '{{ project.platform }}')">
@@ -38,7 +60,10 @@
         ("High", severity_counts["high"] | default(0), "high"),
         ("Medium", severity_counts["medium"] | default(0), "medium"),
         ("Low", severity_counts["low"] | default(0), "low")] %}
-        <div class="stat-card stat-card--{{ cls }}" role="listitem" id="stat-{{ cls }}">
+        <div class="stat-card stat-card--{{ cls }}" role="listitem" id="stat-{{ cls }}"
+            onclick="showSeverityPanel('{{ cls }}')"
+            style="cursor:pointer; transition:transform var(--transition), border-color var(--transition, 0.15s ease);"
+            onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='none'">
             <div class="stat-card__value">{{ count }}</div>
             <div class="stat-card__label">{{ label }}</div>
         </div>
@@ -86,15 +111,11 @@
         <div class="card" id="chart-categories">
             <div
                 style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-4);">
-                By OWASP Category
+                By Security Category
             </div>
-            {% for cat, count, max in [
-            ("M1 Storage", 6, 10),
-            ("M3 Auth", 4, 10),
-            ("M5 Network", 3, 10),
-            ("M9 Cryptography", 2, 10),
-            ("M2 Credentials", 1, 10),
-            ] %}
+            {% if category_counts %}
+            {% set max_count = category_counts.values()|max if category_counts else 10 %}
+            {% for cat, count in category_counts.items()|sort(attribute='1', reverse=true) %}
             <div style="margin-bottom:var(--sp-3);">
                 <div
                     style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;">
@@ -102,53 +123,159 @@
                     <span style="color:var(--text-primary);">{{ count }}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-bar__fill" style="width:{{ (count/max*100)|int }}%;background:var(--accent);">
+                    <div class="progress-bar__fill"
+                        style="width:{{ (count / (max_count if max_count > 0 else 1) * 100)|int }}%;background:var(--accent);">
                     </div>
                 </div>
             </div>
             {% endfor %}
+            {% else %}
+            <div style="padding:var(--sp-4);text-align:center;color:var(--text-faint);font-size:12px;">
+                No category data available. Complete a scan to see distribution.
+            </div>
+            {% endif %}
         </div>
 
     </div>
 
     <!-- Findings table -->
     <div class="panel" style="margin-top:var(--sp-6);" id="findings-panel">
+
         <div class="findings-header">
             <span class="findings-header__title">Findings <span
                     style="color:var(--text-primary);font-family:var(--font-mono);">{{ findings|length }}</span></span>
-            <button class="btn btn--sm btn--ghost" id="filter-findings-btn">
-                Filter
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
-                </svg>
-            </button>
+            <div style="display:flex; gap:var(--sp-2);">
+                {% if scan and scan.status == "running" %}
+                <span style="display:flex; align-items:center; gap:var(--sp-2); font-size:11px; color:var(--accent); font-weight:600;">
+                    <span class="severity-dot severity-dot--scanning"></span>
+                    Live Updating
+                </span>
+                {% endif %}
+                <button class="btn btn--sm btn--ghost" id="filter-findings-btn">
+                    Filter
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
-        {% if findings %}
-        {% for f in findings %}
-        {% set sev = f.severity.value if f.severity.value is defined else f.severity %}
-        <a class="finding-row" href="/findings/{{ f.id }}" id="finding-row-{{ f.id }}"
-            aria-label="{{ f.title }} — {{ sev }}">
-            <div class="finding-row__severity">
-                <span class="severity-badge severity-badge--{{ sev }}">{{ sev }}</span>
+        <div id="findings-list">
+            {% if findings %}
+            {% for f in findings %}
+            {# Safely format Enum types or plain strings evenly to lower-case values #}
+            {% set sev = (f.severity | string).split('.')[-1].lower() %}
+            <a class="finding-row" href="/findings/{{ f.id }}" id="finding-row-{{ f.id }}"
+                aria-label="{{ f.title }} — {{ sev }}">
+                <div class="finding-row__severity">
+                    <span class="severity-badge severity-badge--{{ sev }}">{{ sev }}</span>
+                </div>
+                <div class="finding-row__content">
+                    <div class="finding-row__title">{{ f.title }}</div>
+                    <div class="finding-row__location">{{ f.location }}</div>
+                </div>
+                <div class="finding-row__arrow" aria-hidden="true">›</div>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">
+                {% if not project %}
+                <div style="font-size:14px;">Welcome to IRVES Dashboard. Select a project to begin.</div>
+                {% elif not scan %}
+                No completed scan for this project yet. <a href="/scan" style="color:var(--accent);">Run a scan</a> first.
+                {% else %}
+                No findings in this scan.
+                {% endif %}
             </div>
-            <div class="finding-row__content">
-                <div class="finding-row__title">{{ f.title }}</div>
-                <div class="finding-row__location">{{ f.location }}</div>
-            </div>
-            <div class="finding-row__arrow" aria-hidden="true">›</div>
-        </a>
-        {% endfor %}
-        {% else %}
-        <div style="padding:var(--sp-8);text-align:center;color:var(--text-muted);">
-            No findings to display.
+            {% endif %}
         </div>
-        {% endif %}
 
+
+    </div>
+
+</div>
+
+<!-- Severity Details Offcanvas Panel -->
+<div id="severity-details-panel"
+    style="position:fixed; top:var(--topbar-h, 52px); right:0; width:450px; height:calc(100vh - var(--topbar-h, 52px)); background:var(--surface); border-left:1px solid var(--border); z-index:100; transform:translateX(100%); transition:transform var(--transition-slow); overflow-y:auto; box-shadow:-4px 0 24px rgba(0,0,0,0.5);">
+    <div style="padding:var(--sp-6);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-6);">
+            <h2 id="sdp-title" class="page-header__title"
+                style="font-size:18px; display:flex; align-items:center; gap:var(--sp-2);">Severity Details</h2>
+            <button class="btn btn--sm btn--ghost" aria-label="Close panel" onclick="closeSeverityPanel()">✕</button>
+        </div>
+        <div id="sdp-content" style="display:flex; flex-direction:column; gap:var(--sp-3);">
+            <!-- findings injected here -->
+        </div>
+    </div>
+</div>
+
+<!-- Irves AI Dashboard Drawer -->
+<div id="dash-ai-drawer" style="position:fixed; bottom:0; right:0; width:400px; max-height:600px; display:none; flex-direction:column; background:var(--surface-raised); border-top:1px solid var(--border); border-left:1px solid var(--border); border-top-left-radius:var(--radius-lg); z-index:200; padding:var(--sp-4); box-shadow:-2px -2px 12px rgba(0,0,0,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-3);">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted);">Irves AI — Project Assistant</div>
+        <button class="btn btn--sm btn--ghost" id="dash-ai-close" style="font-size:12px;">✕</button>
+    </div>
+    <div id="dash-ai-history" style="flex:1; overflow-y:auto; font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--sp-3); display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+            <div style="font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted);">Irves AI</div>
+            <div style="font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; color:var(--text-primary); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 10px;">Hello! I'm ready to analyze these {{ findings|length if findings else 0 }} findings. What would you like to know?</div>
+        </div>
+    </div>
+    <div style="display:flex; gap:var(--sp-2);">
+        <input type="text" id="dash-ai-input" placeholder="Ask about the scan results..." style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); padding:0 var(--sp-2); font-size:12px; outline:none; height:30px;" autocomplete="off" />
+        <button class="btn btn--primary btn--sm" id="dash-ai-submit">Ask</button>
     </div>
 </div>
 
 <script>
+    const allFindings = [
+        {% if findings %}
+    {% for f in findings %}
+    {% set sev = (f.severity | string).split('.')[-1].lower() %}
+    {
+        id: "{{ f.id }}",
+        title: {{ f.title | tojson | safe }},
+        severity: "{{ sev }}",
+        location: {{ (f.location or '') | tojson | safe }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+    {% endif %}
+    ];
+
+    function showSeverityPanel(severity) {
+        document.querySelectorAll('.stat-card').forEach(el => el.style.borderColor = 'var(--border)');
+        const activeCard = document.getElementById('stat-' + severity);
+        if (activeCard) activeCard.style.borderColor = `var(--${severity})`;
+
+        const panel = document.getElementById('severity-details-panel');
+        const title = document.getElementById('sdp-title');
+        const content = document.getElementById('sdp-content');
+
+        title.innerHTML = `<span class="severity-badge severity-badge--${severity}" style="font-size:12px;">${severity}</span> <span style="font-size:14px; color:var(--text-muted);">Findings</span>`;
+
+        let filtered = allFindings.filter(f => f.severity.toLowerCase() === severity.toLowerCase());
+
+        if (filtered.length === 0) {
+            content.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:var(--sp-8);font-size:13px;">No ${severity} findings available.</div>`;
+        } else {
+            content.innerHTML = filtered.map(f => `
+                <a class="card card--interactive" href="/findings/${f.id}" style="display:block; text-decoration:none; padding:var(--sp-4);">
+                    <div style="font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--${f.severity}); margin-bottom:4px;">${f.severity} RISK</div>
+                    <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:6px; line-height:1.4;">${f.title}</div>
+                    <div style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); word-break:break-all;">${f.location || 'Unknown location'}</div>
+                </a>
+            `).join('');
+        }
+
+        panel.style.transform = 'translateX(0)';
+    }
+
+    function closeSeverityPanel() {
+        document.getElementById('severity-details-panel').style.transform = 'translateX(100%)';
+        document.querySelectorAll('.stat-card').forEach(el => el.style.borderColor = 'var(--border)');
+    }
+
     async function reScan(projectId, platform) {
         const btn = document.getElementById('rescan-btn');
         if (btn) { btn.disabled = true; btn.textContent = 'Starting…'; }
@@ -163,11 +290,169 @@
                 throw new Error(err.detail || 'Failed to start scan');
             }
             const scan = await res.json();
-            window.location.href = `/live-scan?scan_id=${scan.id}&project_id=${projectId}`;
+            const targetUrl = `/live-scan?scan_id=${scan.id}&project_id=${projectId}`;
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'navigate', href: targetUrl }, '*');
+            } else {
+                window.location.href = targetUrl;
+            }
         } catch (err) {
             if (btn) { btn.disabled = false; btn.textContent = 'Re-scan'; }
             window.irves?.showToast('Error: ' + err.message);
         }
     }
+
+    // ── Dashboard AI Partner ──────────────────────────────────────────────
+    // Simple markdown to HTML converter for AI responses
+    function mdToHtml(text) {
+        if (!text) return '';
+        let html = text
+            // Escape HTML entities first
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            // Headers
+            .replace(/^### (.*$)/gim, '<h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--accent);">$1</h4>')
+            .replace(/^## (.*$)/gim, '<h3 style="margin:14px 0 10px 0;font-size:14px;font-weight:600;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:4px;">$1</h3>')
+            .replace(/^# (.*$)/gim, '<h2 style="margin:16px 0 12px 0;font-size:15px;font-weight:700;color:var(--text-primary);">$1</h2>')
+            // Bold and Italic
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-primary);">$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/___(.*?)___/g, '<strong><em>$1</em></strong>')
+            .replace(/__(.*?)__/g, '<strong style="color:var(--text-primary);">$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            // Inline code
+            .replace(/`([^`]+)`/g, '<code style="background:var(--surface-raised);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;color:var(--accent);">$1</code>')
+            // Code blocks
+            .replace(/```(\w+)?\n?([\s\S]*?)```/g, '<pre style="background:var(--surface-raised);padding:10px;border-radius:6px;overflow-x:auto;margin:8px 0;border:1px solid var(--border);"><code style="font-family:var(--font-mono);font-size:11px;line-height:1.5;">$2</code></pre>')
+            // Blockquote
+            .replace(/^> (.*$)/gim, '<blockquote style="border-left:3px solid var(--accent);margin:8px 0;padding-left:12px;color:var(--text-muted);font-style:italic;">$1</blockquote>')
+            // Unordered lists
+            .replace(/^\s*[-\*] (.*$)/gim, '<li style="margin:4px 0;margin-left:16px;">$1</li>')
+            // Ordered lists
+            .replace(/^\s*\d+\.\s+(.*$)/gim, '<li style="margin:4px 0;margin-left:16px;list-style-type:decimal;">$1</li>')
+            // Links
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>')
+            // Horizontal rule
+            .replace(/^\s*---\s*$/gim, '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">')
+            // Line breaks (preserve newlines as <br> for non-block elements)
+            .replace(/\n/g, '<br>');
+        
+        // Wrap consecutive list items in ul/ol
+        html = html.replace(/(<li[^>]*>.*?<\/li>)(<br>)*\s*(<li[^>]*>.*?<\/li>)+/g, function(match) {
+            const items = match.replace(/<br>/g, '');
+            if (items.includes('list-style-type:decimal')) {
+                return '<ol style="margin:8px 0;padding-left:0;">' + items + '</ol>';
+            }
+            return '<ul style="margin:8px 0;padding-left:0;list-style:none;">' + items + '</ul>';
+        });
+        
+        return html;
+    }
+
+    (function initDashAI() {
+        const toggleBtn  = document.getElementById('toggle-dash-ai-btn');
+        const drawer     = document.getElementById('dash-ai-drawer');
+        const closeBtn   = document.getElementById('dash-ai-close');
+        
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                drawer.style.display = drawer.style.display === 'flex' ? 'none' : 'flex';
+            });
+        }
+        if(closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                drawer.style.display = 'none';
+            });
+        }
+        
+        const input = document.getElementById('dash-ai-input');
+        const submit = document.getElementById('dash-ai-submit');
+        const history = document.getElementById('dash-ai-history');
+        
+        if(submit) {
+            submit.addEventListener('click', () => {
+                if(!input.value.trim()) return;
+                const projectId = "{{ project.id }}";
+                const message = input.value;
+                input.value = '';
+                
+                const wrap = document.createElement('div');
+                wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '2px';
+                wrap.innerHTML = `<div style="font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--accent);">You</div>
+                                  <div style="font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; color:var(--text-primary); background:rgba(99,102,241,0.08); border:1px solid var(--border); border-radius:6px; padding:8px 10px;">${message}</div>`;
+                history.appendChild(wrap);
+                history.scrollTop = history.scrollHeight;
+
+                const aiWrap = document.createElement('div');
+                aiWrap.style.display = 'flex'; aiWrap.style.flexDirection = 'column'; aiWrap.style.gap = '2px';
+                aiWrap.innerHTML = `<div style="font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted);">Irves AI</div>
+                                <div class="ai-msg-content" style="font-size:12px; line-height:1.6; color:var(--text-primary); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 10px;"></div>`;
+                history.appendChild(aiWrap);
+                history.scrollTop = history.scrollHeight;
+
+                const contentDiv = aiWrap.querySelector('.ai-msg-content');
+                let tokenBuffer = '';
+                let renderTimeout = null;
+
+                // Debounced render function to batch updates
+                function renderBuffer() {
+                    if (tokenBuffer) {
+                        contentDiv.innerHTML = mdToHtml(tokenBuffer);
+                        history.scrollTop = history.scrollHeight;
+                    }
+                    renderTimeout = null;
+                }
+
+                fetch('/api/analysis/project-summary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: projectId, message: message })
+                }).then(res => {
+                    if(!res.ok) {
+                        contentDiv.textContent = 'Error starting AI analysis: ' + res.statusText;
+                        return;
+                    }
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    function read() {
+                        reader.read().then(({done, value}) => {
+                            if (done) {
+                                if (renderTimeout) clearTimeout(renderTimeout);
+                                renderBuffer();
+                                return;
+                            }
+                            const text = decoder.decode(value);
+                            const lines = text.split('\n');
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const d = JSON.parse(line.substring(6));
+                                        if (d.token) {
+                                            tokenBuffer += d.token;
+                                            // Debounce rendering for smooth performance
+                                            if (!renderTimeout) {
+                                                renderTimeout = setTimeout(renderBuffer, 50);
+                                            }
+                                        }
+                                        if (d.error) {
+                                            tokenBuffer += '\n\n[Error: ' + d.error + ']';
+                                            if (renderTimeout) clearTimeout(renderTimeout);
+                                            renderBuffer();
+                                        }
+                                    } catch(e) {}
+                                }
+                            }
+                            read();
+                        });
+                    }
+                    read();
+                }).catch(err => {
+                    contentDiv.textContent = 'Connection error: ' + err.message;
+                });
+            });
+        }
+    })();
 </script>
 {% endblock %}

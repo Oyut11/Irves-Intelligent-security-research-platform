@@ -43,7 +43,7 @@ class ToolRunner(ABC):
     """
     Base class for all security tool runners.
 
-    Each tool (APKTool, JADX, MobSF, Frida, etc.) should inherit from this
+    Each tool (APKTool, JADX, Frida, mitmproxy, etc.) should inherit from this
     and implement the run() method.
     """
 

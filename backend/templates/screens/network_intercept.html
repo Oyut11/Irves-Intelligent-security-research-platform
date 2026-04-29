@@ -129,6 +129,230 @@
         font-weight: 600;
     }
 
+    .pinning-badge {
+        font-size: 9px;
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning, #f59e0b);
+        border-radius: 3px;
+        padding: 1px 4px;
+        margin-right: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .pinning-high {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--critical, #ef4444);
+    }
+
+    .pinning-panel {
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: var(--radius);
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .pinning-panel.critical {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    /* Diff Viewer */
+    .diff-panel {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 1200px;
+        height: 80%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .diff-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-raised);
+    }
+
+    .diff-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    .diff-content {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+
+    .diff-side {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .diff-side:first-child {
+        border-right: 1px solid var(--border);
+    }
+
+    .diff-side-header {
+        padding: 8px 12px;
+        background: var(--surface-raised);
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .diff-code {
+        flex: 1;
+        padding: 12px;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .diff-line-added {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+    }
+
+    .diff-line-removed {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .diff-line-modified {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .diff-summary {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--surface-raised);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .diff-changes-badge {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--text-muted);
+    }
+
+    .modified-badge {
+        font-size: 9px;
+        background: rgba(99, 102, 241, 0.2);
+        color: var(--accent);
+        border-radius: 3px;
+        padding: 1px 4px;
+        margin-right: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .security-badge {
+        font-size: 9px;
+        border-radius: 3px;
+        padding: 1px 4px;
+        margin-right: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .security-critical {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+
+    .security-high {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+    }
+
+    .security-medium {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+    }
+
+    .security-low {
+        background: rgba(107, 114, 128, 0.2);
+        color: #6b7280;
+    }
+
+    .protocol-badge {
+        font-size: 9px;
+        border-radius: 3px;
+        padding: 1px 4px;
+        margin-right: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .protocol-websocket {
+        background: rgba(139, 92, 246, 0.2);
+        color: #8b5cf6;
+    }
+
+    .protocol-grpc {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+
+    .security-panel {
+        padding: 12px;
+        border-radius: var(--radius);
+        margin-bottom: 12px;
+    }
+
+    .security-panel.critical {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .security-panel.high {
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .security-panel.medium {
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
     /* Inspector Layout */
     .inspector-header {
         display: flex;
@@ -176,6 +400,113 @@
         white-space: pre-wrap;
         word-break: break-all;
     }
+
+    /* Checklist Panel Styles */
+    .checklist-panel {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: var(--sp-4);
+        overflow: hidden;
+    }
+
+    .checklist-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+    }
+
+    .checklist-header:hover {
+        background: var(--surface-raised);
+    }
+
+    .checklist-content {
+        padding: 12px 16px;
+        transition: max-height 0.3s ease;
+        max-height: 500px;
+        overflow: hidden;
+    }
+
+    .checklist-content.collapsed {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .checklist-item:hover {
+        background: rgba(99, 102, 241, 0.08);
+    }
+
+    .checklist-item-body {
+        flex: 1;
+    }
+
+    .checklist-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .checklist-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    .checklist-toggle-btn {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .checklist-toggle-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .checklist-toggle-btn[data-state="?"] {
+        background: var(--surface);
+        color: var(--text-muted);
+    }
+
+    .checklist-toggle-btn[data-state="✓"] {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: var(--success);
+        color: var(--success);
+    }
+
+    .checklist-toggle-btn[data-state="✗"] {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: var(--critical);
+        color: var(--critical);
+    }
 </style>
 {% endblock %}
 
@@ -189,25 +520,145 @@
             <p class="page-header__subtitle">Live Proxy Traffic Analysis & Manipulation</p>
         </div>
         <div style="display:flex; gap: 8px; align-items: center;">
+            <button class="btn btn--sm btn--ghost" id="toggle-net-ai-btn" style="color:var(--accent); border:1px solid rgba(99,102,241,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Irves AI Partner
+            </button>
+            <div style="width:1px; height:16px; background:var(--border); margin:0 4px;"></div>
+            <button class="btn btn--sm btn--ghost" id="network-docs-btn" style="color:var(--text-muted);" title="View Network Intercept Documentation">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                Docs
+            </button>
+            <div style="width:1px; height:16px; background:var(--border); margin:0 4px;"></div>
+            <span id="live-audit-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-faint);display:inline-block;flex-shrink:0;transition:background 0.3s;margin-left:4px;"></span>
+            <button class="btn btn--sm btn--ghost" id="btn-live-audit" title="Stream AI security audit for each new flow automatically">Live Audit</button>
+            <button class="btn btn--sm btn--ghost" id="btn-ssl-capture" title="Inject BoringSSL hook via Frida to capture pinned HTTPS at native layer" style="border:1px solid rgba(99,102,241,0.25);">SSL Capture</button>
+            <div style="width:1px; height:16px; background:var(--border); margin:0 4px;"></div>
+            
+            <!-- Proxy engine status dot + label -->
+            <span id="proxy-engine-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-faint);display:inline-block;flex-shrink:0;"></span>
             <div id="proxy-status"
-                style="font-size:12px; font-weight:600; color:var(--text-faint); margin-right: 12px;">Proxy Not Bound
+                style="font-size:12px; font-weight:600; color:var(--text-faint); margin-right: 12px;">Proxy starting…
             </div>
 
             {% if project and project.platform == 'ios' %}
             <span
                 style="font-size: 11px; color: var(--text-muted); background: var(--surface-raised); padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--border);">
-                <b>iOS Active:</b> Set iPhone HTTP Proxy manually to <code
-                    style="color:var(--accent);">your_ip:8080</code>
+                <b>iOS Active:</b> Set iPhone HTTP Proxy manually
             </span>
+            <button class="btn btn--primary btn--sm" id="btn-ios-proxy-setup">📱 iOS Proxy Setup</button>
+            <button class="btn btn--ghost btn--sm" id="btn-disable-proxy" style="color:var(--critical);">Stop Proxy</button>
             {% else %}
             <button class="btn btn--primary btn--sm" id="btn-enable-proxy">▶ Bind Device to Proxy</button>
             <button class="btn btn--ghost btn--sm" id="btn-disable-proxy" style="color:var(--critical);">Stop
                 Proxy</button>
             {% endif %}
 
+            <div style="width:1px;height:16px;background:var(--border);margin:0 4px;"></div>
+            <span id="stealth-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text-faint);display:inline-block;flex-shrink:0;transition:background 0.3s;"></span>
+            <button class="btn btn--ghost btn--sm" id="btn-stealth-toggle" title="Transparent eBPF redirect — hides proxy from app. Requires root + device bound.">Stealth</button>
+
             <button class="btn btn--ghost btn--sm" id="btn-clear-traffic">Clear</button>
         </div>
     </div>
+
+    <!-- Android Setup Guide -->
+    {% if not project or project.platform == 'android' %}
+    <div class="network-setup-guide" id="android-setup-guide" style="padding: 12px 24px; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 12px;">
+        <span style="font-size: 16px; margin-top: 2px;">💡</span>
+        <div>
+            <strong style="color: var(--text-primary);">HTTPS Interception requires you to choose an installation path</strong>
+            <p style="margin: 4px 0 0 0; line-height: 1.5;">
+                When you click <b>▶ Bind Device to Proxy</b>, you will be prompted to select a CA Certificate installation mode depending on your device's root status.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- iOS Setup Guide -->
+    {% if project and project.platform == 'ios' %}
+    <div class="network-setup-guide" id="ios-setup-guide" style="padding: 12px 24px; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 12px;">
+        <span style="font-size: 16px; margin-top: 2px;">🍎</span>
+        <div>
+            <strong style="color: var(--text-primary);">iOS HTTPS Interception Setup</strong>
+            <p style="margin: 4px 0 0 0; line-height: 1.5;">
+                iOS requires manual proxy configuration and CA certificate installation. Click <b>📱 iOS Proxy Setup</b> for step-by-step instructions.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- What to Look For Checklist Panel -->
+    <div class="checklist-panel" id="checklist-panel" style="display:none;">
+        <div class="checklist-header" id="checklist-header">
+            <span style="font-size:13px; font-weight:600; color:var(--text-primary);">📋 What to Look For</span>
+            <button class="btn btn--ghost btn--sm" id="checklist-toggle" style="font-size:11px; padding:2px 8px;">▼</button>
+        </div>
+        <div class="checklist-content" id="checklist-content">
+            <div class="checklist-item" data-check="api-surface">
+                <div class="checklist-item-body">
+                    <div class="checklist-title">API Surface Mapping</div>
+                    <div class="checklist-desc">Have you seen all major flows? Auth, data fetch, analytics — tick each off as endpoints appear.</div>
+                </div>
+                <button class="checklist-toggle-btn" data-state="?">?</button>
+            </div>
+            <div class="checklist-item" data-check="secret-detection">
+                <div class="checklist-item-body">
+                    <div class="checklist-title">Live Secret Detection</div>
+                    <div class="checklist-desc">Check Authorization headers. Any Bearer token in plaintext is a finding. Check for API keys in query params too.</div>
+                </div>
+                <button class="checklist-toggle-btn" data-state="?">?</button>
+            </div>
+            <div class="checklist-item" data-check="ssl-pinning">
+                <div class="checklist-item-body">
+                    <div class="checklist-title">SSL Pinning Gap</div>
+                    <div class="checklist-desc">If this session connected through IRVES proxy without errors — the app has no pinning. That's a finding.</div>
+                </div>
+                <button class="checklist-toggle-btn" data-state="?">?</button>
+            </div>
+            <div class="checklist-item" data-check="cors-headers">
+                <div class="checklist-item-body">
+                    <div class="checklist-title">CORS & Header Analysis</div>
+                    <div class="checklist-desc">Look at response headers. Is Access-Control-Allow-Origin set to *? Missing Strict-Transport-Security? Each one is a separate finding.</div>
+                </div>
+                <button class="checklist-toggle-btn" data-state="?">?</button>
+            </div>
+            <div class="checklist-item" data-check="device-security">
+                <div class="checklist-item-body">
+                    <div class="checklist-title">Device Security Checks</div>
+                    <div class="checklist-desc">Did the app launch and run normally on a rooted device with a proxy cert installed? If yes — no root detection, no pinning, no debuggable check.</div>
+                </div>
+                <button class="checklist-toggle-btn" data-state="?">?</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Installation Modal -->
+    <dialog id="cert-mode-modal" class="irves-dialog" style="padding:0; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); color:var(--text-primary); max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="padding: 24px;">
+            <h2 style="margin:0 0 8px 0; font-size:16px;">Choose Proxy Installation Mode</h2>
+            <p style="margin:0 0 20px 0; font-size:13px; color:var(--text-secondary);">Android 11+ blocks proxy certificates by default. How would you like to install the CA certificate?</p>
+            
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <button class="btn" id="btn-mode-standard" style="display:flex; flex-direction:column; align-items:flex-start; padding:16px; height:auto; background:var(--surface-raised); border:1px solid var(--border); text-align:left;">
+                    <span style="font-weight:600; color:var(--accent);">Standard (Manual Installation)</span>
+                    <span style="font-size:12px; color:var(--text-muted); margin-top:4px; font-weight:normal;">Pushes `irves-proxy-cert.cer` to the Downloads folder. You must manually install it via Settings → Security. (Works on any device)</span>
+                </button>
+
+                <button class="btn" id="btn-mode-root" style="display:flex; flex-direction:column; align-items:flex-start; padding:16px; height:auto; background:var(--surface-raised); border:1px solid var(--critical); border-left:4px solid var(--critical); text-align:left;">
+                    <span style="font-weight:600; color:var(--critical);">System / Root (Automated injection)</span>
+                    <span style="font-size:12px; color:var(--text-muted); margin-top:4px; font-weight:normal;">Uses Android Root to generate the OpenSSL subject hash and injects the certificate directly into `/system/etc/security/cacerts`. Globally bypasses app restrictions automatically.</span>
+                    <div style="margin-top:12px; font-size:11px; padding:8px; background:rgba(239,68,68,0.1); color:var(--critical); border-radius:4px;">
+                        <b>TIGHTER WARNING:</b> Please use this on your own app. Don't intercept on other's property.
+                    </div>
+                </button>
+            </div>
+            
+            <div style="margin-top:24px; text-align:right;">
+                <button class="btn btn--ghost" id="btn-mode-cancel">Cancel</button>
+            </div>
+        </div>
+    </dialog>
 
     <!-- Workspace -->
     <div class="network-workspace">
@@ -218,12 +669,14 @@
                 <table class="data-table" id="traffic-table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">Time</th>
+                            <th style="width: 60px;">Time</th>
                             <th style="width: 70px;">Method</th>
-                            <th style="width: 180px;">Host</th>
+                            <th style="width: 200px;">Host</th>
                             <th>Path</th>
                             <th style="width: 60px;">Status</th>
-                            <th style="width: 80px;">Length</th>
+                            <th style="width: 70px;">Size</th>
+                            <th style="width: 28px;" title="Secrets detected">🔑</th>
+                            <th style="width: 36px;" title="AI Risk">Risk</th>
                         </tr>
                     </thead>
                     <tbody id="traffic-body">
@@ -246,6 +699,11 @@
                     style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);margin-left:auto;">Repeater
                     ↺</button>
                 <button class="btn btn--sm btn--primary" id="btn-send-replay" style="display:none;">Send</button>
+                <button class="btn btn--sm" id="btn-ai-suggest" style="background:rgba(99,102,241,0.12);border:1px solid var(--accent);color:var(--accent);display:none;" title="Get 3 AI-generated fuzzing mutations for this request">AI Suggest</button>
+                <button class="btn btn--sm" id="btn-analyze-ai" style="background:rgba(99,102,241,0.12);border:1px solid var(--accent);color:var(--accent);display:none;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;vertical-align:middle;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Analyze with AI
+                </button>
             </div>
             <div class="inspector-body">
                 <div class="inspector-col">
@@ -264,109 +722,257 @@
             </div>
         </div>
 
+        <!-- SSL Capture Modal (Phase 3) -->
+        <dialog id="ssl-capture-modal" class="irves-dialog" style="padding:0; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); color:var(--text-primary); max-width:480px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <div style="padding:20px;">
+                <h2 style="margin:0 0 6px 0; font-size:15px;">SSL/TLS Capture</h2>
+                <p style="margin:0 0 14px 0; font-size:12px; color:var(--text-secondary);">Capture encrypted traffic from pinned apps using native SSL hooks.</p>
+                
+                <!-- Mode Tabs -->
+                <div style="display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                    <button class="btn btn--sm ssl-mode-tab active" data-mode="realtime" style="background:rgba(99,102,241,0.15); border:1px solid var(--accent); color:var(--accent);">
+                        🔴 Real-time
+                    </button>
+                    <button class="btn btn--sm ssl-mode-tab" data-mode="wireshark" style="background:var(--surface-raised); border:1px solid var(--border); color:var(--text-muted);">
+                        🦈 Wireshark Export
+                    </button>
+                </div>
+
+                <!-- Real-time Mode (BoringSSL Hook) -->
+                <div id="ssl-mode-realtime" class="ssl-mode-content">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; padding:8px; background:var(--surface-raised); border-radius:var(--radius-sm);">
+                        <b>BoringSSL Hook</b> — Captures plaintext in real-time, appears in traffic table. Best for live analysis.
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+                        <label style="font-size:11px; color:var(--text-muted); font-weight:600;">Package / Bundle ID</label>
+                        <input type="text" id="ssl-package-input" placeholder="com.example.app" style="background:var(--surface-raised); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); padding:6px 10px; font-size:13px; outline:none;" autocomplete="off" />
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+                        <label style="font-size:11px; color:var(--text-muted); font-weight:600;">Startup Mode</label>
+                        <select id="ssl-capture-mode" style="background:var(--surface-raised); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); padding:6px 10px; font-size:12px; outline:none;">
+                            <option value="attach_first" selected>Attach First (recommended)</option>
+                            <option value="attach">Attach Only (no app restart)</option>
+                            <option value="spawn_gate">Spawn Gate (stealth, may restart app)</option>
+                            <option value="spawn_clean">Spawn Clean (hard restart)</option>
+                        </select>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-muted);">
+                            <input type="checkbox" id="ssl-auto-fallback" checked style="accent-color:var(--accent);" />
+                            Auto-fallback to native SSL capture on pinning errors
+                        </label>
+                    </div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end;">
+                        <button class="btn btn--ghost btn--sm" id="ssl-modal-cancel">Cancel</button>
+                        <button class="btn btn--primary btn--sm" id="ssl-modal-start">Start Capture</button>
+                    </div>
+                </div>
+
+                <!-- Wireshark Export Mode (friTap) -->
+                <div id="ssl-mode-wireshark" class="ssl-mode-content" style="display:none;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; padding:8px; background:var(--surface-raised); border-radius:var(--radius-sm);">
+                        <b>friTap Export</b> — Generates NSS keylog + PCAP for Wireshark decryption. Best for offline forensics.
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+                        <label style="font-size:11px; color:var(--text-muted); font-weight:600;">Package / Bundle ID</label>
+                        <input type="text" id="fritap-package-input" placeholder="com.example.app" style="background:var(--surface-raised); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); padding:6px 10px; font-size:13px; outline:none;" autocomplete="off" />
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                        <input type="checkbox" id="fritap-pcap-checkbox" checked style="accent-color:var(--accent);" />
+                        <label for="fritap-pcap-checkbox" style="font-size:12px; color:var(--text-secondary);">Generate PCAP file</label>
+                    </div>
+                    <div id="fritap-status" style="display:none; font-size:11px; padding:8px; border-radius:var(--radius-sm); margin-bottom:12px;"></div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end;">
+                        <button class="btn btn--ghost btn--sm" id="fritap-modal-cancel">Cancel</button>
+                        <button class="btn btn--primary btn--sm" id="fritap-modal-start">Start friTap</button>
+                        <button class="btn btn--sm" id="fritap-modal-stop" style="display:none; background:var(--critical); color:white;">Stop & Download</button>
+                    </div>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- iOS Proxy Setup Modal -->
+        <dialog id="ios-proxy-modal" class="irves-dialog" style="padding:0; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); color:var(--text-primary); max-width:520px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <div style="padding: 24px;">
+                <h2 style="margin:0 0 8px 0; font-size:16px;">📱 iOS Proxy Configuration</h2>
+                <p style="margin:0 0 20px 0; font-size:13px; color:var(--text-secondary);">Configure your iPhone/iPad to route traffic through IRVES proxy.</p>
+                
+                <!-- Step 1: Network Setup -->
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">1</span>
+                        <span style="font-weight:600; font-size:13px;">Wi-Fi Proxy Settings</span>
+                    </div>
+                    <div style="background:var(--surface-raised); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-left:32px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:12px; color:var(--text-muted);">Server Address:</span>
+                            <code id="ios-proxy-host" style="background:var(--surface); padding:4px 8px; border-radius:4px; font-size:13px; color:var(--accent);">Loading...</code>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:12px; color:var(--text-muted);">Port:</span>
+                            <code style="background:var(--surface); padding:4px 8px; border-radius:4px; font-size:13px; color:var(--accent);">8080</code>
+                        </div>
+                        <button class="btn btn--sm btn--ghost" id="btn-copy-proxy" style="margin-top:10px; width:100%;">
+                            📋 Copy Proxy Settings
+                        </button>
+                    </div>
+                    <div style="margin-left:32px; margin-top:8px; font-size:11px; color:var(--text-muted);">
+                        Settings → Wi-Fi → (i) → Configure Proxy → Manual
+                    </div>
+                </div>
+
+                <!-- Step 2: Certificate -->
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">2</span>
+                        <span style="font-weight:600; font-size:13px;">Install CA Certificate</span>
+                    </div>
+                    <div style="background:var(--surface-raised); border:1px solid var(--border); border-radius:var(--radius); padding:12px; margin-left:32px;">
+                        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">
+                            On your iOS device, open Safari and visit:
+                        </div>
+                        <code style="display:block; background:var(--surface); padding:8px; border-radius:4px; font-size:12px; color:var(--accent); text-align:center;">http://mitm.it</code>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                            Select "Apple iOS" → Install Profile → Trust in Settings
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Trust Certificate -->
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">3</span>
+                        <span style="font-weight:600; font-size:13px;">Enable Full Trust</span>
+                    </div>
+                    <div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.3); border-radius:var(--radius); padding:12px; margin-left:32px;">
+                        <div style="font-size:12px; color:var(--text-secondary);">
+                            <b>Critical:</b> Go to <b>Settings → General → About → Certificate Trust Settings</b> and enable full trust for the mitmproxy certificate.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SSL Pinning Note -->
+                <div style="background:rgba(99, 102, 241, 0.08); border:1px solid rgba(99, 102, 241, 0.3); border-radius:var(--radius); padding:12px; margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <span style="font-size:16px;">🔒</span>
+                        <span style="font-weight:600; font-size:12px; color:var(--accent);">SSL Pinning & Stealth Mode (Jailbroken)</span>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-bottom:8px;">
+                        Apps like browsers may bypass standard proxy settings via QUIC or IPv6. To enforce a "Stealth Mode" transparent redirect on a jailbroken device, run this via SSH:
+                    </div>
+                    <div style="background:var(--surface); padding:8px; border-radius:4px; font-size:11px; font-family:var(--font-mono); color:var(--text-secondary); margin-bottom:8px;">
+                        echo "rdr pass on en0 inet proto tcp from any to any port {80, 443} -> 127.0.0.1 port 8080" > /tmp/proxy.conf<br>
+                        pfctl -f /tmp/proxy.conf -e
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+                        To bypass SSL pinning, use <b>SSL Kill Switch 2</b> or <b>Frida + objection</b>. Stock iOS cannot bypass pinning or enforce transparent proxies without a VPN profile.
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn btn--ghost btn--sm" id="ios-modal-close">Close</button>
+                    <button class="btn btn--primary btn--sm" id="ios-modal-done">Done</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- AI Analysis Panel (Phase 4) -->
+        <div id="ai-analysis-panel" style="display:none; flex-shrink:0; background:var(--surface-raised); border-top:1px solid var(--border); padding:10px 16px; font-size:12px; max-height:160px; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted);">AI Risk Analysis</div>
+                <button class="btn btn--sm btn--ghost" id="ai-analysis-close" style="font-size:11px;">✕</button>
+            </div>
+            <div id="ai-analysis-risk-badge" style="display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700; margin-bottom:6px;"></div>
+            <div id="ai-analysis-summary" style="color:var(--text-primary); line-height:1.5; margin-bottom:6px;"></div>
+            <div id="ai-analysis-findings" style="display:flex; flex-direction:column; gap:4px;"></div>
+            <!-- AI Suggest mutation cards -->
+            <div id="ai-suggest-panel" style="display:none; margin-top:10px; border-top:1px solid var(--border); padding-top:8px;">
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Fuzzing Mutations</div>
+                <div id="ai-suggest-cards" style="display:flex; flex-direction:column; gap:6px;"></div>
+            </div>
+        </div>
+
+        <!-- Irves AI Network Chat Drawer (Right Side Column) -->
+        <div id="net-ai-drawer" style="position:fixed; bottom:0; right:0; width:420px; max-height:620px; display:none; flex-direction:column; background:var(--surface-raised); border-top:1px solid var(--border); border-left:1px solid var(--border); border-top-left-radius:var(--radius-lg); z-index:200; padding:var(--sp-4); box-shadow:-2px -2px 12px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--sp-3);">
+                <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted);">Irves AI — Network Analysis</div>
+                <button class="btn btn--sm btn--ghost" id="net-ai-close" style="font-size:12px;">✕</button>
+            </div>
+            <div id="net-ai-history" style="flex:1; overflow-y:auto; font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:var(--sp-3); display:flex; flex-direction:column; gap:8px; max-height:420px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <div style="font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--text-muted);">Irves AI</div>
+                    <div style="font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-word; color:var(--text-primary); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 10px;">Select a request from the traffic table, then ask me anything — I can identify PII leaks, weak auth tokens, broken access controls, suggest fuzzing strategies, explain response headers, or help you craft exploit payloads. What would you like to investigate?</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:var(--sp-2);">
+                <input type="text" id="net-ai-input" placeholder="Type your question about the selected request..." style="flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); padding:0 var(--sp-2); font-size:12px; outline:none; height:30px;" autocomplete="off" />
+                <button class="btn btn--primary btn--sm" id="net-ai-submit">Ask</button>
+            </div>
+        </div>
+    </div>
+
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    let ws = null;
-    let trafficLog = [];
-    let selectedId = null;
+    'use strict';
 
-    const tbody = document.getElementById('traffic-body');
-    const logCount = document.getElementById('log-count');
-    const inspReqText = document.getElementById('insp-req-text');
-    const repeaterTextarea = document.getElementById('repeater-textarea');
-    const btnRepeater = document.getElementById('btn-repeater');
-    const btnSendReplay = document.getElementById('btn-send-replay');
-    const inspRes = document.getElementById('insp-res');
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    const tbody          = document.getElementById('traffic-body');
+    const logCount       = document.getElementById('log-count');
+    const inspReqText    = document.getElementById('insp-req-text');   // <pre>
+    const repeaterTA     = document.getElementById('repeater-textarea');
+    const btnRepeater    = document.getElementById('btn-repeater');
+    const btnSendReplay  = document.getElementById('btn-send-replay');
+    const inspResEl      = document.getElementById('insp-res');
+    const proxyStatusEl  = document.getElementById('proxy-status');
+    const proxyDotEl     = document.getElementById('proxy-engine-dot');
+    const btnEnable      = document.getElementById('btn-enable-proxy');
+    const btnDisable     = document.getElementById('btn-disable-proxy');
+    const btnClear       = document.getElementById('btn-clear-traffic');
+    const histCont       = document.getElementById('history-container');
 
-    let currentReqData = null;
-    let repeaterMode = false;
+    // ── Checklist refs ─────────────────────────────────────────────────────────
+    const checklistPanel      = document.getElementById('checklist-panel');
+    const checklistHeader     = document.getElementById('checklist-header');
+    const checklistToggle     = document.getElementById('checklist-toggle');
+    const checklistContent    = document.getElementById('checklist-content');
+    const checklistItems      = document.querySelectorAll('.checklist-item');
+    const checklistToggleBtns = document.querySelectorAll('.checklist-toggle-btn');
 
-    function toggleRepeater() {
-        repeaterMode = !repeaterMode;
-        if (repeaterMode) {
-            btnRepeater.style.background = 'rgba(99, 102, 241, 0.2)';
-            btnRepeater.style.color = 'var(--accent)';
-            btnSendReplay.style.display = 'block';
-            inspReqText.style.display = 'none';
-            repeaterTextarea.style.display = 'block';
-            repeaterTextarea.value = inspReqText.textContent;
-            inspRes.textContent = "Awaiting replay response...";
-        } else {
-            btnRepeater.style.background = 'var(--surface)';
-            btnRepeater.style.color = 'var(--text-primary)';
-            btnSendReplay.style.display = 'none';
-            repeaterTextarea.style.display = 'none';
-            inspReqText.style.display = 'block';
-        }
-    }
+    // ── State ─────────────────────────────────────────────────────────────────
+    let ws              = null;
+    let wsRetryDelay    = 2000;
+    let trafficLog      = [];
+    let selectedId      = null;
+    let currentReqData  = null;
+    let repeaterMode    = false;
+    let boundSerial     = null;   // serial currently bound to proxy
+    let sslCaptureActive = false;
+    let sslCapturePackage = localStorage.getItem('irves.ssl.package') || '';
+    let sslAutoFallbackEnabled = localStorage.getItem('irves.ssl.auto_fallback') !== '0';
+    let sslAutoTriggerInProgress = false;
 
-    btnRepeater.onclick = toggleRepeater;
+    // ── Checklist State ─────────────────────────────────────────────────────────
+    let checklistCollapsed = localStorage.getItem('irves.checklist.collapsed') === 'true';
+    let checklistStates = JSON.parse(localStorage.getItem('irves.checklist.states') || '{}');
 
-    btnSendReplay.onclick = async () => {
-        if (!currentReqData) return;
-        const text = repeaterTextarea.value;
-        const parts = text.split('\n\n');
-
-        let headerBlock = parts[0];
-        let content = parts.slice(1).join('\n\n') || "";
-
-        let headers = {};
-        let lines = headerBlock.split('\n');
-        let requestLine = lines[0];
-        let method = requestLine.split(' ')[0];
-        let url = requestLine.split(' ').slice(1).join(' ').trim();
-
-        for (let i = 1; i < lines.length; i++) {
-            let l = lines[i];
-            if (l.indexOf(':') !== -1) {
-                let k = l.substring(0, l.indexOf(':')).trim();
-                let v = l.substring(l.indexOf(':') + 1).trim();
-                headers[k] = v;
-            }
-        }
-
-        inspRes.textContent = "Sending...";
-        const res = await fetch('/api/network/replay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                method, url, headers, content
-            })
-        });
-
-        const data = await res.json();
-        if (data.status === 'success') {
-            const resp = data.response;
-            let resText = `HTTP ${resp.status_code}\n`;
-            for (const [k, v] of Object.entries(resp.headers)) {
-                resText += `${k}: ${v}\n`;
-            }
-            resText += `\n${resp.content || ''}`;
-            inspRes.textContent = resText;
-        } else {
-            inspRes.textContent = "Error: " + data.message;
-        }
-    }
-
-    // Connect WebSocket
-    function connectWs() {
-        ws = new WebSocket(`ws://${location.host}/api/network/ws`);
-        ws.onmessage = (e) => {
-            const msg = JSON.parse(e.data);
-            if (msg.type === 'request') {
-                handleNewRequest(msg.data);
-            }
-        };
-        ws.onclose = () => setTimeout(connectWs, 2000);
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function formatTime(unixSeconds) {
-        const d = new Date(unixSeconds * 1000);
-        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+        const d = new Date((unixSeconds || 0) * 1000);
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+
+    function fmtSize(bytes) {
+        if (!bytes || bytes === 0) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(2) + ' MB';
     }
 
     function getStatusClass(code) {
@@ -378,6 +984,352 @@
         return '';
     }
 
+    // ── Checklist Functions ─────────────────────────────────────────────────────
+    function initChecklist() {
+        // Show panel
+        if (checklistPanel) {
+            checklistPanel.style.display = 'block';
+        }
+
+        // Set initial collapsed state
+        if (checklistCollapsed && checklistContent) {
+            checklistContent.classList.add('collapsed');
+            checklistToggle.textContent = '▶';
+        } else {
+            checklistToggle.textContent = '▼';
+        }
+
+        // Restore checklist states from localStorage
+        checklistItems.forEach(item => {
+            const checkId = item.dataset.check;
+            const savedState = checklistStates[checkId] || '?';
+            const toggleBtn = item.querySelector('.checklist-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.dataset.state = savedState;
+                toggleBtn.textContent = savedState;
+            }
+        });
+
+        // Header click - collapse/expand
+        checklistHeader?.addEventListener('click', (e) => {
+            // Don't collapse if clicking the toggle button directly
+            if (e.target === checklistToggle) return;
+            toggleChecklistCollapse();
+        });
+
+        // Toggle button click - collapse/expand
+        checklistToggle?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleChecklistCollapse();
+        });
+
+        // Toggle button clicks - cycle through states
+        checklistToggleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                cycleChecklistState(btn);
+            });
+        });
+
+        // Item body clicks - active engagement (switch to repeater mode)
+        checklistItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Don't trigger if clicking the toggle button
+                if (e.target.classList.contains('checklist-toggle-btn')) return;
+
+                // Switch to repeater mode for active engagement
+                if (!repeaterMode && btnRepeater) {
+                    toggleRepeater();
+                }
+            });
+        });
+    }
+
+    function toggleChecklistCollapse() {
+        checklistCollapsed = !checklistCollapsed;
+        if (checklistContent) {
+            if (checklistCollapsed) {
+                checklistContent.classList.add('collapsed');
+                checklistToggle.textContent = '▶';
+            } else {
+                checklistContent.classList.remove('collapsed');
+                checklistToggle.textContent = '▼';
+            }
+        }
+        localStorage.setItem('irves.checklist.collapsed', checklistCollapsed);
+    }
+
+    function cycleChecklistState(btn) {
+        const currentState = btn.dataset.state || '?';
+        const states = ['?', '✓', '✗'];
+        const currentIndex = states.indexOf(currentState);
+        const nextState = states[(currentIndex + 1) % states.length];
+
+        btn.dataset.state = nextState;
+        btn.textContent = nextState;
+
+        // Save to localStorage
+        const item = btn.closest('.checklist-item');
+        const checkId = item?.dataset.check;
+        if (checkId) {
+            checklistStates[checkId] = nextState;
+            localStorage.setItem('irves.checklist.states', JSON.stringify(checklistStates));
+        }
+    }
+
+    async function startNativeSslCapture({ serial, packageName, mode = 'attach_first', source = 'manual' }) {
+        if (!serial || !packageName) return { status: 'error', message: 'serial/package missing' };
+        if (sslCaptureActive && sslCapturePackage === packageName) {
+            return { status: 'success', hook_status: 'active', already_active: true };
+        }
+
+        const res = await fetch('/api/network/ssl-capture/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                serial,
+                package: packageName,
+                mode,
+                inject_bypass: true,
+                inject_delay_ms: 250,
+            }),
+        });
+        const data = await res.json();
+
+        if (data.status === 'success' && data.hook_status === 'active') {
+            sslCaptureActive = true;
+            sslCapturePackage = packageName;
+            localStorage.setItem('irves.ssl.package', packageName);
+            const method = data.method || mode;
+            proxyStatusEl.innerHTML = `&#9889; Native SSL Capture active &mdash; ${packageName} (${method}, ${source})`;
+            proxyStatusEl.style.color = 'var(--accent)';
+        }
+        return data;
+    }
+
+    // ── Proxy engine status polling ───────────────────────────────────────────
+    async function pollProxyStatus() {
+        try {
+            const r = await fetch('/api/network/status');
+            const d = await r.json();
+            if (d.running) {
+                proxyDotEl.style.background = 'var(--success)';
+                if (!boundSerial) {
+                    proxyStatusEl.textContent  = `Proxy running on :8080 — bind a device to capture traffic`;
+                    proxyStatusEl.style.color  = 'var(--text-muted)';
+                }
+            } else {
+                proxyDotEl.style.background = 'var(--critical)';
+                proxyStatusEl.textContent   = 'Proxy not running';
+                proxyStatusEl.style.color   = 'var(--critical)';
+            }
+        } catch (_) {
+            proxyDotEl.style.background = 'var(--text-faint)';
+        }
+    }
+    pollProxyStatus();
+    setInterval(pollProxyStatus, 8000);
+
+    // ── Repeater toggle ───────────────────────────────────────────────────────
+    function toggleRepeater() {
+        repeaterMode = !repeaterMode;
+        if (repeaterMode) {
+            btnRepeater.style.background = 'rgba(99,102,241,0.2)';
+            btnRepeater.style.color      = 'var(--accent)';
+            btnSendReplay.style.display  = 'block';
+            inspReqText.style.display    = 'none';
+            repeaterTA.style.display     = 'block';
+            repeaterTA.value             = inspReqText.textContent;
+            inspResEl.textContent        = 'Awaiting replay response…';
+        } else {
+            btnRepeater.style.background = 'var(--surface)';
+            btnRepeater.style.color      = 'var(--text-primary)';
+            btnSendReplay.style.display  = 'none';
+            repeaterTA.style.display     = 'none';
+            inspReqText.style.display    = 'block';
+        }
+    }
+    btnRepeater.onclick = toggleRepeater;
+
+    // ── Repeater — send edited request ────────────────────────────────────────
+    btnSendReplay.onclick = async () => {
+        if (!currentReqData) return;
+        const text  = repeaterTA.value;
+        const parts = text.split('\n\n');
+
+        const headerLines = parts[0].split('\n');
+        const body        = parts.slice(1).join('\n\n') || '';
+        const reqLine     = headerLines[0] || '';
+        const method      = reqLine.split(' ')[0];
+        const url         = reqLine.split(' ').slice(1).join(' ').trim();
+
+        const headers = {};
+        for (let i = 1; i < headerLines.length; i++) {
+            const idx = headerLines[i].indexOf(':');
+            if (idx !== -1) {
+                headers[headerLines[i].substring(0, idx).trim()] =
+                    headerLines[i].substring(idx + 1).trim();
+            }
+        }
+
+        inspResEl.textContent = 'Sending…';
+        try {
+            const res  = await fetch('/api/network/replay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ method, url, headers, content: body }),
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                const resp = data.response;
+                let out = `HTTP ${resp.status_code}\n`;
+                for (const [k, v] of Object.entries(resp.headers || {})) {
+                    out += `${k}: ${v}\n`;
+                }
+                out += `\n${resp.content || ''}`;
+                inspResEl.textContent = out;
+            } else {
+                inspResEl.textContent = 'Error: ' + data.message;
+            }
+        } catch (e) {
+            inspResEl.textContent = 'Network error: ' + e.message;
+        }
+    };
+
+    // ── WebSocket — live traffic ──────────────────────────────────────────────
+    function connectWs() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${proto}//${location.host}/api/network/ws`);
+
+        ws.onopen = () => {
+            wsRetryDelay = 2000;
+        };
+
+        ws.onmessage = (e) => {
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.type === 'request') handleNewRequest(msg.data);
+                // msg.type === 'ping' → ignore keepalive
+            } catch (_) {}
+        };
+
+        ws.onerror = () => {};
+        ws.onclose = () => {
+            ws = null;
+            setTimeout(connectWs, wsRetryDelay);
+            wsRetryDelay = Math.min(wsRetryDelay * 1.5, 15000);
+        };
+    }
+
+    // ── New flow row ──────────────────────────────────────────────────────────
+    function handleNewRequest(data) {
+        trafficLog.push(data);
+        logCount.textContent = trafficLog.length;
+
+        const rawPath = data.path || '/';
+        const dispPath = rawPath.length > 60
+            ? rawPath.split('?')[0].substring(0, 60) + '…'
+            : rawPath;
+
+        const hasSecrets = data.secrets && data.secrets.length > 0;
+        const hasPinning = data.pinning_detected === true;
+        const isModified = data.is_modified === true;
+        const interceptMatch = data.intercept_match === true;
+        const isWebsocket = data.is_websocket === true;
+        const isGrpc = data.is_grpc === true;
+
+        const tr = document.createElement('tr');
+        tr.id      = `row-${data.id}`;
+        tr.onclick = () => selectRequest(data.id);
+        if (hasSecrets) tr.style.background = 'rgba(192,57,43,0.07)';
+        if (hasPinning) tr.style.background = 'rgba(245,158,11,0.07)';
+        if (isModified) tr.style.background = 'rgba(99,102,241,0.07)';
+
+        const srcBadge = data.source === 'ssl'
+            ? '<span style="font-size:9px;background:rgba(99,102,241,0.18);color:var(--accent);border-radius:3px;padding:1px 4px;margin-right:4px;font-weight:700;">SSL</span>'
+            : '';
+        const pinningBadge = hasPinning
+            ? `<span class="pinning-badge ${data.pinning_confidence === 'high' ? 'pinning-high' : ''}" title="SSL Pinning Detected (${data.pinning_confidence} confidence)">🔒 PINNED</span>`
+            : '';
+        const modifiedBadge = isModified
+            ? '<span class="modified-badge" title="Response was modified">✏️ MODIFIED</span>'
+            : '';
+        const interceptBadge = interceptMatch && !isModified
+            ? '<span style="font-size:9px;background:rgba(99,102,241,0.1);color:var(--accent);border-radius:3px;padding:1px 4px;margin-right:4px;">⏸️ INTERCEPT</span>'
+            : '';
+        const websocketBadge = isWebsocket
+            ? '<span class="protocol-badge protocol-websocket" title="WebSocket connection">📡 WS</span>'
+            : '';
+        const grpcBadge = isGrpc
+            ? '<span class="protocol-badge protocol-grpc" title="gRPC call">⚡ GRPC</span>'
+            : '';
+        const statusDisplay = hasPinning
+            ? `<span style="color:var(--warning);font-weight:600;">BLOCKED</span>`
+            : (data.status_code || '');
+        tr.innerHTML = `
+            <td>${formatTime(data.timestamp)}</td>
+            <td class="method-${escapeHtml(data.method)}">${websocketBadge}${grpcBadge}${modifiedBadge}${interceptBadge}${pinningBadge}${srcBadge}${escapeHtml(data.method)}</td>
+            <td>${escapeHtml(data.host)}</td>
+            <td title="${escapeHtml(rawPath)}">${escapeHtml(dispPath)}</td>
+            <td class="${hasPinning ? '' : getStatusClass(data.status_code)}">${statusDisplay}</td>
+            <td>${fmtSize(data.content_length)}</td>
+            <td style="text-align:center;">${hasSecrets ? '<span title="' + escapeHtml(data.secrets.join(', ')) + '" style="color:var(--critical);cursor:help;">🔑</span>' : ''}</td>
+            <td id="risk-${data.id}" style="text-align:center; font-size:13px;" title="AI Risk"></td>
+        `;
+
+        tbody.appendChild(tr);
+
+        // Auto-scroll if near bottom
+        if (histCont.scrollHeight - histCont.scrollTop - histCont.clientHeight < 60) {
+            histCont.scrollTop = histCont.scrollHeight;
+        }
+
+        // Toast for critical secrets
+        if (hasSecrets) {
+            showSecretAlert(data.host, data.secrets);
+        }
+
+        // Auto-fallback: when pinning is detected, trigger native SSL capture
+        if (
+            hasPinning &&
+            sslAutoFallbackEnabled &&
+            !sslCaptureActive &&
+            !sslAutoTriggerInProgress &&
+            boundSerial &&
+            sslCapturePackage
+        ) {
+            sslAutoTriggerInProgress = true;
+            startNativeSslCapture({
+                serial: boundSerial,
+                packageName: sslCapturePackage,
+                mode: 'attach_first',
+                source: 'auto-fallback',
+            })
+                .catch(() => {})
+                .finally(() => {
+                    sslAutoTriggerInProgress = false;
+                });
+        }
+    }
+
+    function showSecretAlert(host, secrets) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position:fixed; bottom:24px; right:24px; z-index:9999;
+            background:rgba(192,57,43,0.95); color:#fff;
+            padding:12px 18px; border-radius:8px; font-size:13px;
+            box-shadow:0 8px 32px rgba(0,0,0,0.5); max-width:340px;
+            border:1px solid rgba(255,255,255,0.15);
+            animation: slideIn 0.2s ease;
+        `;
+        toast.innerHTML = `<b>🚨 Secret Detected</b><br>
+            <span style="opacity:0.85; font-size:12px;">${escapeHtml(host)}</span><br>
+            <span style="font-size:11px; opacity:0.7;">${secrets.map(escapeHtml).join(', ')}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 6000);
+    }
+
+    // ── Flow inspector ────────────────────────────────────────────────────────
     async function selectRequest(id) {
         selectedId = id;
         document.querySelectorAll('#traffic-body tr').forEach(tr => tr.classList.remove('selected'));
@@ -386,33 +1338,140 @@
 
         if (repeaterMode) toggleRepeater();
 
-        inspReqText.textContent = 'Loading...';
-        inspRes.textContent = '';
+        inspReqText.textContent = 'Loading…';
+        inspResEl.textContent   = '';
 
         try {
-            const res = await fetch(`/api/network/flow/${id}`);
+            const res  = await fetch(`/api/network/flow/${id}`);
             const data = await res.json();
             if (data.status === 'success') {
-                const req = data.request;
-                const resp = data.response;
+                const flowData = data.flow || data;
+                const req  = flowData.request  || {};
+                const resp = flowData.response || {};
                 currentReqData = req;
 
-                let reqText = `${req.method} ${req.url}\n`;
-                for (const [k, v] of Object.entries(req.headers)) {
+                // Build request text
+                let reqText = `${req.method || 'GET'} ${req.url || ''}\n`;
+                for (const [k, v] of Object.entries(req.headers || {})) {
                     reqText += `${k}: ${v}\n`;
                 }
-                reqText += `\n${req.content || ''}`;
+                // Body field is 'body' not 'content' in new service
+                const reqBody = req.body || req.content || '';
+                if (reqBody) reqText += `\n${reqBody}`;
                 inspReqText.textContent = reqText;
 
+                // Build response text
                 if (resp && resp.status_code) {
                     let resText = `HTTP ${resp.status_code}\n`;
-                    for (const [k, v] of Object.entries(resp.headers)) {
+                    for (const [k, v] of Object.entries(resp.headers || {})) {
                         resText += `${k}: ${v}\n`;
                     }
-                    resText += `\n${resp.content || ''}`;
-                    inspRes.textContent = resText;
+                    const respBody = resp.body || resp.content || '';
+                    if (respBody) resText += `\n${respBody}`;
+                    inspResEl.textContent = resText;
                 } else {
-                    inspRes.textContent = 'No response yet or connection closed.';
+                    inspResEl.textContent = 'No response captured yet.';
+                }
+
+                // Show pinning detection panel if detected
+                if (flowData.pinning_detected === true) {
+                    const pinningPanel = document.createElement('div');
+                    const isHighConfidence = flowData.pinning_confidence === 'high';
+                    pinningPanel.className = `pinning-panel ${isHighConfidence ? 'critical' : ''}`;
+                    pinningPanel.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <span style="font-size:16px;">🔒</span>
+                            <span style="font-weight:700; color:var(${isHighConfidence ? '--critical' : '--warning'});">
+                                SSL Certificate Pinning Detected
+                            </span>
+                            <span style="font-size:10px; text-transform:uppercase; padding:2px 6px; background:rgba(0,0,0,0.2); border-radius:3px;">
+                                ${escapeHtml(flowData.pinning_confidence || 'unknown')} confidence
+                            </span>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                            This app implements certificate pinning and is blocking proxy interception.
+                        </div>
+                        ${flowData.pinning_indicators && flowData.pinning_indicators.length > 0 ? `
+                            <div style="font-size:11px; color:var(--text-muted);">
+                                Detected indicators: ${flowData.pinning_indicators.map(escapeHtml).join(', ')}
+                            </div>
+                        ` : ''}
+                        <div style="margin-top:10px; padding:8px; background:rgba(0,0,0,0.1); border-radius:4px; font-size:11px;">
+                            <b>To bypass:</b> Use Frida/objection to disable pinning, or inject via native SSL capture
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:8px;">
+                            <button id="pinning-open-ssl-modal" class="btn btn--sm" style="background:rgba(99,102,241,0.15); border:1px solid var(--accent); color:var(--accent);">
+                                Open SSL Capture
+                            </button>
+                            <button id="pinning-start-native" class="btn btn--sm" style="background:rgba(34,197,94,0.15); border:1px solid var(--success); color:var(--success);">
+                                Start Native Capture
+                            </button>
+                        </div>
+                    `;
+                    const ib = document.querySelector('.inspector-body');
+                    const existing = ib.querySelector('.pinning-panel');
+                    if (existing) existing.remove();
+                    ib.insertBefore(pinningPanel, ib.firstChild);
+
+                    const openBtn = document.getElementById('pinning-open-ssl-modal');
+                    const startBtn = document.getElementById('pinning-start-native');
+                    openBtn?.addEventListener('click', () => {
+                        const modal = document.getElementById('ssl-capture-modal');
+                        modal?.showModal();
+                    });
+                    startBtn?.addEventListener('click', async () => {
+                        if (!boundSerial || !sslCapturePackage) {
+                            proxyStatusEl.textContent = 'Set target package in SSL Capture first';
+                            proxyStatusEl.style.color = 'var(--warning)';
+                            return;
+                        }
+                        const r = await startNativeSslCapture({
+                            serial: boundSerial,
+                            packageName: sslCapturePackage,
+                            mode: 'attach_first',
+                            source: 'pinning-panel',
+                        });
+                        if (!(r.status === 'success' && r.hook_status === 'active')) {
+                            proxyStatusEl.textContent = '✗ Native capture start failed: ' + (r.message || r.hook_status || 'unknown');
+                            proxyStatusEl.style.color = 'var(--critical)';
+                        }
+                    });
+                } else {
+                    const existing = document.querySelector('.pinning-panel');
+                    if (existing) existing.remove();
+                }
+
+                // Show secrets banner if any
+                if (flowData.secrets && flowData.secrets.length > 0) {
+                    const banner = document.createElement('div');
+                    banner.style.cssText = 'padding:8px 12px;background:rgba(192,57,43,0.12);border-bottom:1px solid rgba(192,57,43,0.3);font-size:11px;color:var(--critical);font-weight:600;';
+                    banner.textContent = '🔑 Secrets detected: ' + flowData.secrets.join(', ');
+                    // Prepend to inspector body
+                    const ib = document.querySelector('.inspector-body');
+                    const existing = ib.querySelector('.secrets-banner');
+                    if (existing) existing.remove();
+                    banner.className = 'secrets-banner';
+                    // Insert after pinning panel if present, else at start
+                    const pinningPanel = ib.querySelector('.pinning-panel');
+                    if (pinningPanel) {
+                        ib.insertBefore(banner, pinningPanel.nextSibling);
+                    } else {
+                        ib.insertBefore(banner, ib.firstChild);
+                    }
+                } else {
+                    const existing = document.querySelector('.secrets-banner');
+                    if (existing) existing.remove();
+                }
+
+                // Add security scan button to inspector header
+                const inspHeader = document.querySelector('.inspector-header');
+                if (inspHeader && !inspHeader.querySelector('.btn-security-scan')) {
+                    const secBtn = document.createElement('button');
+                    secBtn.className = 'btn btn--sm btn--ghost btn-security-scan';
+                    secBtn.textContent = '🔍 Security Scan';
+                    secBtn.onclick = () => runSecurityScan(id);
+                    secBtn.style.marginLeft = 'auto';
+                    inspHeader.appendChild(secBtn);
                 }
             } else {
                 inspReqText.textContent = data.message || 'Error loading flow';
@@ -422,81 +1481,1262 @@
         }
     }
 
-    function handleNewRequest(data) {
-        trafficLog.push(data);
-        logCount.textContent = trafficLog.length;
+    // ── Proxy bind / unbind ───────────────────────────────────────────────────
+    async function getFirstAdbDevice() {
+        const r    = await fetch('/api/runtime/adb-devices');
+        const devs = await r.json();
+        return devs.devices ? devs.devices[0] : devs[0];
+    }
+    
+    let activeSerial = null;
+    const certModal = document.getElementById('cert-mode-modal');
 
-        const maxPath = data.path.length > 50 ? Object.values(data.path.split('?'))[0] + "..." : data.path;
+    if (btnEnable) {
+        btnEnable.onclick = async () => {
+            if (proxyStatusEl.textContent.includes('starting')) return;
+            try {
+                const dev = await getFirstAdbDevice();
+                if (!dev) {
+                    proxyStatusEl.textContent = '✗ No ADB device connected';
+                    proxyStatusEl.style.color = 'var(--critical)';
+                    return;
+                }
+                activeSerial = dev.serial;
+                certModal.showModal();
+            } catch (e) {
+                console.error(e);
+            }
+        };
+    }
 
-        const tr = document.createElement('tr');
-        tr.id = `row-${data.id}`;
-        tr.onclick = () => selectRequest(data.id);
+    document.getElementById('btn-mode-cancel')?.addEventListener('click', () => certModal.close());
+    
+    document.getElementById('btn-mode-standard')?.addEventListener('click', () => {
+        certModal.close();
+        triggerBind('standard');
+    });
 
-        tr.innerHTML = `
-            <td>${formatTime(data.timestamp)}</td>
-            <td class="method-${data.method}">${data.method}</td>
-            <td>${escapeHtml(data.host)}</td>
-            <td title="${escapeHtml(data.path)}">${escapeHtml(maxPath)}</td>
-            <td class="${getStatusClass(data.status_code)}">${data.status_code || ''}</td>
-            <td>${data.content_length > 0 ? data.content_length : ''}</td>
-        `;
+    document.getElementById('btn-mode-root')?.addEventListener('click', () => {
+        certModal.close();
+        triggerBind('system_root');
+    });
 
-        tbody.appendChild(tr);
-
-        // Auto-scroll logic could be added here if not selected
-        const c = document.getElementById('history-container');
-        if (c.scrollHeight - c.scrollTop - c.clientHeight < 50) {
-            c.scrollTop = c.scrollHeight;
+    async function triggerBind(mode) {
+        if (!activeSerial) return;
+        btnEnable.disabled    = true;
+        btnEnable.textContent = 'Binding…';
+        try {
+            const pkgParam = sslCapturePackage ? `&package=${encodeURIComponent(sslCapturePackage)}` : '';
+            const res  = await fetch(`/api/network/proxy/enable/${activeSerial}?mode=${mode}${pkgParam}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                boundSerial = activeSerial;
+                proxyDotEl.style.background  = 'var(--success)';
+                let statusMsg = `Proxy Bound to ${activeSerial} [${mode}]`;
+                if (mode === 'system_root') {
+                    if (data.ca_verified === true) {
+                        statusMsg += ' — <span style="color:var(--success);">✓ CA verified in APEX</span>';
+                    } else if (data.ca_verified === false) {
+                        const rawMsg = (data.message || 'no diagnostic from backend').toString();
+                        const safeReason = rawMsg.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        statusMsg += ` — <span style="color:var(--warning, #f59e0b);">⚠ CA not verified</span>`;
+                        if (data.root_impl && data.root_impl !== 'none') {
+                            statusMsg += ` [${data.root_impl}]`;
+                        }
+                        statusMsg += `<br><span style="color:var(--text-muted); font-size:11px; font-family:monospace;">${safeReason}</span>`;
+                    } else {
+                        if (data.root_impl && data.root_impl !== 'none') {
+                            statusMsg += ` [${data.root_impl}]`;
+                        }
+                    }
+                }
+                proxyStatusEl.innerHTML      = statusMsg;
+                proxyStatusEl.style.color    = 'var(--success)';
+                btnEnable.textContent        = '✓ Bound';
+            } else {
+                proxyStatusEl.textContent = '✗ Bind failed: ' + data.message;
+                proxyStatusEl.style.color = 'var(--critical)';
+                btnEnable.textContent     = '▶ Bind Device to Proxy';
+                btnEnable.disabled        = false;
+            }
+        } catch (e) {
+            proxyStatusEl.textContent = '✗ Error: ' + e.message;
+            proxyStatusEl.style.color = 'var(--critical)';
+            btnEnable.textContent     = '▶ Bind Device to Proxy';
+            btnEnable.disabled        = false;
         }
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    // Proxy Binding via ADB
-    const btnEnableProxy = document.getElementById('btn-enable-proxy');
-    const btnDisableProxy = document.getElementById('btn-disable-proxy');
-
-    if (btnEnableProxy) {
-        btnEnableProxy.onclick = async () => {
-            // Find serial
-            const r = await fetch('/api/runtime/adb-devices');
-            const devs = await r.json();
-            if (devs.length === 0) {
-                alert('No ADB devices connected'); return;
-            }
-
-            const res = await fetch(`/api/network/proxy/enable/${devs[0].serial}`, { method: 'POST' });
-            if (res.ok) {
-                document.getElementById('proxy-status').textContent = 'Proxy Bound to ' + devs[0].serial;
-                document.getElementById('proxy-status').style.color = 'var(--success)';
+    if (btnDisable) {
+        btnDisable.onclick = async () => {
+            try {
+                const dev = await getFirstAdbDevice();
+                if (dev) {
+                    await fetch(`/api/network/proxy/disable/${dev.serial}`, { method: 'POST' });
+                }
+                boundSerial               = null;
+                proxyStatusEl.textContent = 'Proxy running — device unbound';
+                proxyStatusEl.style.color = 'var(--text-muted)';
+                if (btnEnable) {
+                    btnEnable.textContent = '▶ Bind Device to Proxy';
+                    btnEnable.disabled    = false;
+                }
+            } catch (e) {
+                proxyStatusEl.textContent = 'Error: ' + e.message;
             }
         };
     }
 
-    if (btnDisableProxy) {
-        btnDisableProxy.onclick = async () => {
-            const r = await fetch('/api/runtime/adb-devices');
-            const devs = await r.json();
-            if (devs.length > 0) {
-                await fetch(`/api/network/proxy/disable/${devs[0].serial}`, { method: 'POST' });
-                document.getElementById('proxy-status').textContent = 'Proxy Not Bound';
-                document.getElementById('proxy-status').style.color = 'var(--text-faint)';
+    // ── Clear traffic ─────────────────────────────────────────────────────────
+    btnClear.onclick = () => {
+        trafficLog              = [];
+        tbody.innerHTML         = '';
+        logCount.textContent    = '0';
+        inspReqText.textContent = 'Select a request to inspect.';
+        inspResEl.textContent   = '';
+        selectedId              = null;
+        currentReqData          = null;
+        const existing = document.querySelector('.secrets-banner');
+        if (existing) existing.remove();
+    };
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    async function init() {
+        // Initialize checklist panel
+        initChecklist();
+
+        try {
+            const r = await fetch('/api/network/flows');
+            const d = await r.json();
+            if (d.status === 'success' && d.flows) {
+                // sort chronologically
+                d.flows.sort((a,b) => a.timestamp - b.timestamp);
+                d.flows.forEach(handleNewRequest);
+                if (d.flows.length > 0) {
+                    // preselect the first or last flow if you wanted to
+                }
+            }
+        } catch(e) { console.error('Failed to load history', e); }
+
+        connectWs();
+    }
+
+    init();
+
+    // ── Stealth Mode toggle ──────────────────────────────────────────────────
+    (function initStealthMode() {
+        const stealthDot = document.getElementById('stealth-dot');
+        const stealthBtn = document.getElementById('btn-stealth-toggle');
+        let stealthActive = false;
+
+        async function syncStealthStatus() {
+            if (!boundSerial) return;
+            try {
+                const r = await fetch(`/api/network/proxy/stealth/status/${boundSerial}`);
+                const d = await r.json();
+                stealthActive = !!d.stealth_active;
+                updateStealthUI();
+            } catch(_) {}
+        }
+
+        function updateStealthUI() {
+            stealthDot.style.background = stealthActive ? 'var(--accent)' : 'var(--text-faint)';
+            stealthBtn.style.color      = stealthActive ? 'var(--accent)' : '';
+            stealthBtn.style.borderColor = stealthActive ? 'var(--accent)' : '';
+            stealthBtn.textContent      = stealthActive ? '⚡ Stealth ON' : 'Stealth';
+        }
+
+        stealthBtn?.addEventListener('click', async () => {
+            if (!boundSerial) {
+                proxyStatusEl.textContent = '✗ Bind a device first before enabling Stealth Mode';
+                proxyStatusEl.style.color = 'var(--critical)';
+                return;
+            }
+            stealthBtn.disabled = true;
+            stealthBtn.textContent = '…';
+            const endpoint = stealthActive
+                ? `/api/network/proxy/stealth/disable/${boundSerial}`
+                : `/api/network/proxy/stealth/enable/${boundSerial}`;
+            try {
+                const r = await fetch(endpoint, { method: 'POST' });
+                const d = await r.json();
+                if (d.status === 'active') {
+                    stealthActive = true;
+                    proxyStatusEl.innerHTML = `⚡ Stealth active on ${boundSerial} — iptables nat redirect 80/443 → :8080`;
+                    proxyStatusEl.style.color = 'var(--accent)';
+                } else if (d.status === 'disabled') {
+                    stealthActive = false;
+                    proxyStatusEl.textContent = `Proxy Bound to ${boundSerial} — Stealth disabled`;
+                    proxyStatusEl.style.color = 'var(--success)';
+                } else {
+                    proxyStatusEl.textContent = '✗ Stealth: ' + (d.message || 'unknown error');
+                    proxyStatusEl.style.color = 'var(--critical)';
+                }
+                updateStealthUI();
+            } catch(e) {
+                proxyStatusEl.textContent = '✗ Stealth error: ' + e.message;
+                proxyStatusEl.style.color = 'var(--critical)';
+            } finally {
+                stealthBtn.disabled = false;
+                updateStealthUI();
+            }
+        });
+
+        // Re-sync stealth state whenever device is bound
+        const _origBoundSet = Object.getOwnPropertyDescriptor(window, 'boundSerial');
+        // Poll stealth status every 10s when a device is bound
+        setInterval(() => { if (boundSerial) syncStealthStatus(); }, 10000);
+    })();
+
+    // ── Irves AI Network Partner ──────────────────────────────────────────────
+    // Simple markdown to HTML converter for AI responses
+    function mdToHtml(text) {
+        if (!text) return '';
+        let html = text
+            // Escape HTML entities first
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            // Headers
+            .replace(/^### (.*$)/gim, '<h4 style="margin:12px 0 8px 0;font-size:13px;color:var(--accent);">$1</h4>')
+            .replace(/^## (.*$)/gim, '<h3 style="margin:14px 0 10px 0;font-size:14px;font-weight:600;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:4px;">$1</h3>')
+            .replace(/^# (.*$)/gim, '<h2 style="margin:16px 0 12px 0;font-size:15px;font-weight:700;color:var(--text-primary);">$1</h2>')
+            // Bold and Italic
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-primary);">$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/___(.*?)___/g, '<strong><em>$1</em></strong>')
+            .replace(/__(.*?)__/g, '<strong style="color:var(--text-primary);">$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            // Inline code
+            .replace(/`([^`]+)`/g, '<code style="background:var(--surface-raised);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;color:var(--accent);">$1</code>')
+            // Code blocks
+            .replace(/```(\w+)?\n?([\s\S]*?)```/g, '<pre style="background:var(--surface-raised);padding:10px;border-radius:6px;overflow-x:auto;margin:8px 0;border:1px solid var(--border);"><code style="font-family:var(--font-mono);font-size:11px;line-height:1.5;">$2</code></pre>')
+            // Blockquote
+            .replace(/^> (.*$)/gim, '<blockquote style="border-left:3px solid var(--accent);margin:8px 0;padding-left:12px;color:var(--text-muted);font-style:italic;">$1</blockquote>')
+            // Unordered lists
+            .replace(/^\s*[-\*] (.*$)/gim, '<li style="margin:4px 0;margin-left:16px;">$1</li>')
+            // Ordered lists
+            .replace(/^\s*\d+\.\s+(.*$)/gim, '<li style="margin:4px 0;margin-left:16px;list-style-type:decimal;">$1</li>')
+            // Links
+            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent);text-decoration:underline;">$1</a>')
+            // Horizontal rule
+            .replace(/^\s*---\s*$/gim, '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+
+        // Wrap consecutive list items in ul/ol
+        html = html.replace(/(<li[^>]*>.*?<\/li>)(<br>)*\s*(<li[^>]*>.*?<\/li>)+/g, function(match) {
+            const items = match.replace(/<br>/g, '');
+            if (items.includes('list-style-type:decimal')) {
+                return '<ol style="margin:8px 0;padding-left:0;">' + items + '</ol>';
+            }
+            return '<ul style="margin:8px 0;padding-left:0;list-style:none;">' + items + '</ul>';
+        });
+
+        return html;
+    }
+
+    (function initNetAI() {
+        const analyzeBtn  = document.getElementById('btn-analyze-ai');
+        const toggleBtn   = document.getElementById('toggle-net-ai-btn');
+        const drawer      = document.getElementById('net-ai-drawer');
+        const closeBtn    = document.getElementById('net-ai-close');
+        const netHistory  = document.getElementById('net-ai-history');
+        const netInput    = document.getElementById('net-ai-input');
+        const netSubmit   = document.getElementById('net-ai-submit');
+
+        let netAiStreaming = false;
+        let lastPacket     = null;   // the currently selected packet data
+
+        // Show "Analyze with AI" button whenever a request is selected
+        const _origSelect = selectRequest;
+        selectRequest = async function(id) {
+            await _origSelect(id);
+            lastPacket = trafficLog.find(r => r.id === id) || null;
+            if (analyzeBtn) analyzeBtn.style.display = lastPacket ? 'flex' : 'none';
+            // Update input placeholder with context about selected request
+            if (netInput && lastPacket) {
+                const method = lastPacket.method || 'GET';
+                const host = lastPacket.host || lastPacket.url || '';
+                netInput.placeholder = `Ask about ${method} ${host}...`;
+            } else if (netInput) {
+                netInput.placeholder = 'Select a request first, then ask...';
             }
         };
+
+        // Open drawer from top toggle — just opens, waits for user input
+        toggleBtn?.addEventListener('click', () => {
+            const isHidden = drawer.style.display === 'none';
+            drawer.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden && netInput) netInput.focus();
+        });
+
+        // Open drawer from inspector analyze button — just opens, waits for user input
+        analyzeBtn?.addEventListener('click', () => {
+            drawer.style.display = 'flex';
+            if (netInput) netInput.focus();
+        });
+
+        // Close drawer
+        closeBtn?.addEventListener('click', () => { drawer.style.display = 'none'; });
+
+        // Append bubble
+        function appendNetBubble(role, text) {
+            const wrap   = document.createElement('div');
+            const label  = document.createElement('div');
+            const bubble = document.createElement('div');
+
+            wrap.style.cssText   = 'display:flex; flex-direction:column; gap:2px;';
+            label.style.cssText  = `font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:${role === 'user' ? 'var(--accent)' : 'var(--text-muted)'};`;
+            label.textContent    = role === 'user' ? 'You' : 'Irves AI';
+            bubble.style.cssText = `font-size:12px; line-height:1.6; color:var(--text-primary); background:${role === 'user' ? 'rgba(99,102,241,0.08)' : 'var(--surface)'}; border:1px solid var(--border); border-radius:6px; padding:8px 10px;`;
+            bubble.innerHTML     = text ? mdToHtml(text) : '';
+
+            wrap.appendChild(label);
+            wrap.appendChild(bubble);
+            netHistory.appendChild(wrap);
+            netHistory.scrollTop = netHistory.scrollHeight;
+            return bubble;
+        }
+
+        // Stream from backend
+        async function streamNetChat(question) {
+            if (netAiStreaming) return;
+            netAiStreaming       = true;
+            netSubmit.disabled   = true;
+            netSubmit.textContent = '…';
+
+            appendNetBubble('user', question);
+            const bubble = appendNetBubble('ai', '');
+            let tokenBuffer = '';
+            let renderTimeout = null;
+
+            // Debounced render function
+            function renderBuffer() {
+                bubble.innerHTML = mdToHtml(tokenBuffer);
+                netHistory.scrollTop = netHistory.scrollHeight;
+                renderTimeout = null;
+            }
+
+            // Build packet context from currentReqData + response text
+            const packetData = {
+                method:    currentReqData?.method  || '',
+                url:       currentReqData?.url     || '',
+                headers:   currentReqData?.headers || {},
+                body:      currentReqData?.body    || currentReqData?.content || '',
+                response:  document.getElementById('insp-res')?.textContent?.slice(0, 2000) || '',
+            };
+
+            const body = { message: question, packet_data: packetData, finding_id: null };
+
+            try {
+                const resp = await fetch('/api/analysis/network-chat', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(body),
+                });
+                if (!resp.ok) throw new Error(`Server ${resp.status}`);
+
+                const reader  = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) {
+                        if (renderTimeout) clearTimeout(renderTimeout);
+                        renderBuffer();
+                        break;
+                    }
+                    buf += decoder.decode(value, { stream: true });
+                    const lines = buf.split('\n');
+                    buf = lines.pop();  // keep incomplete line in buffer
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const raw = line.slice(6).trim();
+                        if (!raw || raw === '[DONE]') continue;  // skip empty/DONE
+                        try {
+                            const evt = JSON.parse(raw);
+                            // Handle done signal from backend
+                            if (evt.done === true) {
+                                if (renderTimeout) clearTimeout(renderTimeout);
+                                renderBuffer();
+                                continue;
+                            }
+                            // Handle error from backend
+                            if (evt.error) {
+                                tokenBuffer += `\n\n⚠️ Error: ${evt.error}`;
+                                if (renderTimeout) clearTimeout(renderTimeout);
+                                renderBuffer();
+                                continue;
+                            }
+                            // Handle metadata (ignore)
+                            if (evt.metadata) continue;
+                            // Handle token
+                            if (evt.token) {
+                                tokenBuffer += evt.token;
+                                // Debounce rendering for smooth performance
+                                if (!renderTimeout) {
+                                    renderTimeout = setTimeout(renderBuffer, 50);
+                                }
+                            }
+                        } catch(_) {}
+                    }
+                }
+            } catch(err) {
+                bubble.style.color = 'var(--critical)';
+                bubble.textContent = `AI error: ${err.message}`;
+            } finally {
+                netAiStreaming        = false;
+                netSubmit.disabled    = false;
+                netSubmit.textContent = 'Ask';
+                // Restore focus to input so user can type immediately
+                if (netInput) netInput.focus();
+            }
+        }
+
+        netSubmit?.addEventListener('click', () => {
+            const q = netInput?.value?.trim();
+            if (!q) return;
+            netInput.value = '';
+            streamNetChat(q);
+        });
+
+        netInput?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); netSubmit?.click(); }
+        });
+    })();
+
+    // ── Phase 3 — SSL Capture (BoringSSL + friTap) ──────────────────────────────
+    (function initSSLCapture() {
+        const btn        = document.getElementById('btn-ssl-capture');
+        const modal      = document.getElementById('ssl-capture-modal');
+        const cancelBtn  = document.getElementById('ssl-modal-cancel');
+        const startBtn   = document.getElementById('ssl-modal-start');
+        const pkgInput   = document.getElementById('ssl-package-input');
+        const modeSelect = document.getElementById('ssl-capture-mode');
+        const autoFallbackCheck = document.getElementById('ssl-auto-fallback');
+
+        if (pkgInput && sslCapturePackage) pkgInput.value = sslCapturePackage;
+        if (autoFallbackCheck) autoFallbackCheck.checked = sslAutoFallbackEnabled;
+        pkgInput?.addEventListener('change', () => {
+            const v = pkgInput.value.trim();
+            sslCapturePackage = v;
+            localStorage.setItem('irves.ssl.package', v);
+        });
+        autoFallbackCheck?.addEventListener('change', () => {
+            sslAutoFallbackEnabled = !!autoFallbackCheck.checked;
+            localStorage.setItem('irves.ssl.auto_fallback', sslAutoFallbackEnabled ? '1' : '0');
+        });
+
+        // Tab switching
+        const modeTabs = document.querySelectorAll('.ssl-mode-tab');
+        const modeContents = document.querySelectorAll('.ssl-mode-content');
+        modeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const mode = tab.dataset.mode;
+                modeTabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.background = 'var(--surface-raised)';
+                    t.style.borderColor = 'var(--border)';
+                    t.style.color = 'var(--text-muted)';
+                });
+                tab.classList.add('active');
+                tab.style.background = 'rgba(99,102,241,0.15)';
+                tab.style.borderColor = 'var(--accent)';
+                tab.style.color = 'var(--accent)';
+                modeContents.forEach(c => c.style.display = 'none');
+                document.getElementById(`ssl-mode-${mode}`).style.display = 'block';
+            });
+        });
+
+        btn?.addEventListener('click', () => {
+            if (sslCaptureActive) {
+                // Stop capture
+                const serial = boundSerial || activeSerial;
+                if (!serial || !sslCapturePackage) { sslCaptureActive = false; updateSSLBtn(); return; }
+                fetch('/api/network/ssl-capture/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serial, package: sslCapturePackage }),
+                }).finally(() => {
+                    sslCaptureActive = false;
+                    updateSSLBtn();
+                    proxyStatusEl.textContent = 'SSL capture stopped';
+                    proxyStatusEl.style.color = 'var(--text-muted)';
+                });
+            } else {
+                modal?.showModal();
+            }
+        });
+
+        cancelBtn?.addEventListener('click', () => modal?.close());
+
+        startBtn?.addEventListener('click', async () => {
+            const pkg    = pkgInput?.value?.trim();
+            const serial = boundSerial || activeSerial;
+            if (!pkg) { pkgInput.focus(); return; }
+            if (!serial) {
+                proxyStatusEl.textContent = '✗ Bind a device first';
+                proxyStatusEl.style.color = 'var(--critical)';
+                modal?.close();
+                return;
+            }
+            modal?.close();
+            startBtn.disabled = true;
+            try {
+                sslCapturePackage = pkg;
+                localStorage.setItem('irves.ssl.package', pkg);
+                const selectedMode = modeSelect?.value || 'attach_first';
+                const r = await startNativeSslCapture({
+                    serial,
+                    packageName: pkg,
+                    mode: selectedMode,
+                    source: 'manual',
+                });
+                if (r.status === 'success' && r.hook_status === 'active') {
+                    sslCaptureActive = true;
+                    const method = r.method || selectedMode;
+                    proxyStatusEl.innerHTML = `&#9889; SSL Capture active &mdash; ${pkg} (${method})`;
+                    proxyStatusEl.style.color = 'var(--accent)';
+                } else {
+                    proxyStatusEl.textContent = '✗ SSL Capture: ' + (r.message || r.hook_status || 'failed');
+                    proxyStatusEl.style.color = 'var(--critical)';
+                }
+            } catch(e) {
+                proxyStatusEl.textContent = '✗ SSL Capture error: ' + e.message;
+                proxyStatusEl.style.color = 'var(--critical)';
+            } finally {
+                startBtn.disabled = false;
+                updateSSLBtn();
+            }
+        });
+
+        function updateSSLBtn() {
+            if (!btn) return;
+            btn.textContent    = sslCaptureActive ? '⬛ Stop SSL Capture' : 'SSL Capture';
+            btn.style.color    = sslCaptureActive ? 'var(--accent)' : '';
+            btn.style.borderColor = sslCaptureActive ? 'var(--accent)' : '';
+        }
+
+        // ── friTap Wireshark Export ──────────────────────────────────────────────
+        const fritapPkgInput   = document.getElementById('fritap-package-input');
+        const fritapPcapCheck  = document.getElementById('fritap-pcap-checkbox');
+        const fritapStatus     = document.getElementById('fritap-status');
+        const fritapStartBtn   = document.getElementById('fritap-modal-start');
+        const fritapStopBtn    = document.getElementById('fritap-modal-stop');
+        const fritapCancelBtn  = document.getElementById('fritap-modal-cancel');
+        let fritapActive       = false;
+        let fritapPackage      = '';
+
+        fritapCancelBtn?.addEventListener('click', () => modal?.close());
+
+        fritapStartBtn?.addEventListener('click', async () => {
+            const pkg = fritapPkgInput?.value?.trim();
+            if (!pkg) { fritapPkgInput.focus(); return; }
+
+            fritapStartBtn.disabled = true;
+            fritapStartBtn.textContent = 'Starting...';
+            fritapStatus.style.display = 'block';
+            fritapStatus.style.background = 'rgba(99,102,241,0.1)';
+            fritapStatus.style.color = 'var(--accent)';
+            fritapStatus.textContent = 'Starting friTap capture...';
+
+            try {
+                const serial = boundSerial || activeSerial || '';
+                const r = await fetch('/api/network/fritap/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package: pkg,
+                        device_id: serial,
+                        generate_pcap: fritapPcapCheck?.checked ?? true,
+                    }),
+                });
+                const d = await r.json();
+                if (d.status === 'started') {
+                    fritapActive = true;
+                    fritapPackage = pkg;
+                    fritapStatus.style.background = 'rgba(34,197,94,0.1)';
+                    fritapStatus.style.color = 'var(--success)';
+                    fritapStatus.innerHTML = `🦈 friTap capturing <b>${pkg}</b><br>Keylog: ${d.keylog_path}`;
+                    fritapStartBtn.style.display = 'none';
+                    fritapStopBtn.style.display = 'inline-flex';
+                    proxyStatusEl.innerHTML = `🦈 friTap active &mdash; ${pkg}`;
+                    proxyStatusEl.style.color = 'var(--success)';
+                } else {
+                    fritapStatus.style.background = 'rgba(239,68,68,0.1)';
+                    fritapStatus.style.color = 'var(--critical)';
+                    fritapStatus.textContent = '✗ ' + (d.message || 'Failed to start');
+                }
+            } catch(e) {
+                fritapStatus.style.background = 'rgba(239,68,68,0.1)';
+                fritapStatus.style.color = 'var(--critical)';
+                fritapStatus.textContent = '✗ Error: ' + e.message;
+            } finally {
+                fritapStartBtn.disabled = false;
+                fritapStartBtn.textContent = 'Start friTap';
+            }
+        });
+
+        fritapStopBtn?.addEventListener('click', async () => {
+            if (!fritapPackage) return;
+
+            fritapStopBtn.disabled = true;
+            fritapStopBtn.textContent = 'Stopping...';
+
+            try {
+                const serial = boundSerial || activeSerial || '';
+                const r = await fetch('/api/network/fritap/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ package: fritapPackage, device_id: serial }),
+                });
+                const d = await r.json();
+                if (d.status === 'stopped') {
+                    fritapStatus.style.background = 'rgba(34,197,94,0.1)';
+                    fritapStatus.style.color = 'var(--success)';
+                    let html = `✅ Capture complete (${d.duration_seconds}s)<br>`;
+                    if (d.keylog_path) {
+                        html += `<a href="/api/network/fritap/keylog/${encodeURIComponent(fritapPackage)}" download style="color:var(--accent);">📥 Download Keylog</a> (${(d.keylog_size/1024).toFixed(1)} KB)`;
+                    }
+                    if (d.pcap_path) {
+                        html += `<br><a href="/api/network/fritap/pcap/${encodeURIComponent(fritapPackage)}" download style="color:var(--accent);">📥 Download PCAP</a> (${(d.pcap_size/1024).toFixed(1)} KB)`;
+                    }
+                    fritapStatus.innerHTML = html;
+                    proxyStatusEl.textContent = 'friTap capture stopped';
+                    proxyStatusEl.style.color = 'var(--text-muted)';
+                } else {
+                    fritapStatus.style.background = 'rgba(239,68,68,0.1)';
+                    fritapStatus.style.color = 'var(--critical)';
+                    fritapStatus.textContent = '✗ ' + (d.message || 'Failed to stop');
+                }
+            } catch(e) {
+                fritapStatus.style.background = 'rgba(239,68,68,0.1)';
+                fritapStatus.style.color = 'var(--critical)';
+                fritapStatus.textContent = '✗ Error: ' + e.message;
+            } finally {
+                fritapActive = false;
+                fritapPackage = '';
+                fritapStopBtn.style.display = 'none';
+                fritapStartBtn.style.display = 'inline-flex';
+                fritapStopBtn.disabled = false;
+                fritapStopBtn.textContent = 'Stop & Download';
+            }
+        });
+    })();
+
+    // ── Phase 4 — AI Analyze, AI Suggest, Live Audit ─────────────────────────
+    (function initAIAuditor() {
+        const analyzePanel   = document.getElementById('ai-analysis-panel');
+        const riskBadgeEl    = document.getElementById('ai-analysis-risk-badge');
+        const summaryEl      = document.getElementById('ai-analysis-summary');
+        const findingsEl     = document.getElementById('ai-analysis-findings');
+        const closePanel     = document.getElementById('ai-analysis-close');
+        const suggestPanel   = document.getElementById('ai-suggest-panel');
+        const suggestCards   = document.getElementById('ai-suggest-cards');
+        const aiSuggestBtn   = document.getElementById('btn-ai-suggest');
+        const analyzeBtn     = document.getElementById('btn-analyze-ai');
+        const liveAuditBtn   = document.getElementById('btn-live-audit');
+        const liveAuditDot   = document.getElementById('live-audit-dot');
+
+        const RISK_STYLE = {
+            high:   { bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', dot: '🔴' },
+            medium: { bg: 'rgba(245,158,11,0.15)', color: '#f59e0b', dot: '🟡' },
+            low:    { bg: 'rgba(34,197,94,0.15)',  color: '#22c55e', dot: '🟢' },
+            info:   { bg: 'rgba(148,163,184,0.1)', color: '#94a3b8', dot: '⚪' },
+        };
+
+        let liveAuditActive  = false;
+        let liveAuditQueue   = [];
+        let auditInFlight    = false;
+
+        closePanel?.addEventListener('click', () => { analyzePanel.style.display = 'none'; });
+
+        // ── Show analyze button when a request is selected ────────────────────
+        const _origSelectForAI = selectRequest;
+        selectRequest = async function(id) {
+            await _origSelectForAI(id);
+            if (analyzeBtn) analyzeBtn.style.display = selectedId ? 'flex' : 'none';
+            if (aiSuggestBtn) aiSuggestBtn.style.display = (selectedId && repeaterMode) ? 'inline-flex' : 'none';
+            analyzePanel.style.display = 'none';
+        };
+
+        // ── Manual analyze ────────────────────────────────────────────────────
+        analyzeBtn?.addEventListener('click', async () => {
+            if (!selectedId) return;
+            analyzeBtn.textContent = '…';
+            analyzeBtn.disabled    = true;
+            analyzePanel.style.display = 'block';
+            summaryEl.textContent  = 'Analyzing…';
+            riskBadgeEl.textContent = '';
+            findingsEl.innerHTML   = '';
+            suggestPanel.style.display = 'none';
+            try {
+                const r = await fetch('/api/network/ai/analyze-flow', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ flow_id: selectedId }),
+                });
+                const d = await r.json();
+                renderAnalysis(selectedId, d);
+            } catch(e) {
+                summaryEl.textContent = 'Error: ' + e.message;
+            } finally {
+                analyzeBtn.textContent = 'Analyze with AI';
+                analyzeBtn.disabled    = false;
+            }
+        });
+
+        // ── AI Suggest (Repeater mutations) ───────────────────────────────────
+        aiSuggestBtn?.addEventListener('click', async () => {
+            if (!selectedId) return;
+            aiSuggestBtn.textContent = '…';
+            aiSuggestBtn.disabled    = true;
+            analyzePanel.style.display = 'block';
+            suggestPanel.style.display = 'block';
+            suggestCards.innerHTML   = '<span style="color:var(--text-muted);">Generating mutations…</span>';
+            try {
+                const r = await fetch('/api/network/ai/repeater-suggest', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ flow_id: selectedId }),
+                });
+                const d = await r.json();
+                renderSuggestCards(d.variants || []);
+            } catch(e) {
+                suggestCards.innerHTML = '<span style="color:var(--critical);">Error: ' + escapeHtml(e.message) + '</span>';
+            } finally {
+                aiSuggestBtn.textContent = 'AI Suggest';
+                aiSuggestBtn.disabled    = false;
+            }
+        });
+
+        function renderAnalysis(flowId, d) {
+            const risk  = (d.risk || 'info').toLowerCase();
+            const style = RISK_STYLE[risk] || RISK_STYLE.info;
+
+            // Update Risk cell in table
+            const riskCell = document.getElementById('risk-' + flowId);
+            if (riskCell) riskCell.textContent = style.dot;
+
+            riskBadgeEl.textContent       = risk.toUpperCase();
+            riskBadgeEl.style.background  = style.bg;
+            riskBadgeEl.style.color       = style.color;
+            summaryEl.textContent         = d.summary || '';
+
+            findingsEl.innerHTML = '';
+            (d.findings || []).forEach(f => {
+                const sev   = (f.severity || 'info').toLowerCase();
+                const fstyle = RISK_STYLE[sev] || RISK_STYLE.info;
+                const el = document.createElement('div');
+                el.style.cssText = `background:${fstyle.bg};border-left:3px solid ${fstyle.color};padding:4px 8px;border-radius:3px;font-size:11px;`;
+                el.innerHTML = `<b style="color:${fstyle.color};">${escapeHtml(f.title || '')}</b> &mdash; ${escapeHtml(f.detail || '')}`;
+                findingsEl.appendChild(el);
+            });
+        }
+
+        function renderSuggestCards(variants) {
+            suggestCards.innerHTML = '';
+            if (!variants.length) {
+                suggestCards.innerHTML = '<span style="color:var(--text-muted);">No suggestions returned.</span>';
+                return;
+            }
+            variants.forEach(v => {
+                const card = document.createElement('div');
+                card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 10px;cursor:pointer;font-size:12px;';
+                card.innerHTML = `<b style="color:var(--accent);">${escapeHtml(v.label || 'Variant')}</b> &mdash; <span style="color:var(--text-muted);">${escapeHtml(v.method || '')} ${escapeHtml((v.url || '').substring(0, 60))}</span>`;
+                card.title = 'Click to load into Repeater';
+                card.addEventListener('click', () => {
+                    // Load this variant into the repeater textarea
+                    let reqText = `${v.method || 'GET'} ${v.url || ''}\n`;
+                    Object.entries(v.headers || {}).forEach(([k, val]) => { reqText += `${k}: ${val}\n`; });
+                    if (v.body) reqText += `\n${v.body}`;
+                    if (!repeaterMode) toggleRepeater();
+                    repeaterTA.value = reqText;
+                    card.style.border = '1px solid var(--accent)';
+                });
+                suggestCards.appendChild(card);
+            });
+        }
+
+        // ── Docs button ────────────────────────────────────────────────────────
+        document.getElementById('network-docs-btn')?.addEventListener('click', () => {
+            window.location.href = '/docs/network-intercept';
+        });
+
+        // ── Live Audit toggle ─────────────────────────────────────────────────
+        liveAuditBtn?.addEventListener('click', () => {
+            liveAuditActive = !liveAuditActive;
+            liveAuditDot.style.background = liveAuditActive ? 'var(--accent)' : 'var(--text-faint)';
+            liveAuditBtn.style.color      = liveAuditActive ? 'var(--accent)' : '';
+            liveAuditBtn.textContent      = liveAuditActive ? '⚡ Audit ON' : 'Live Audit';
+        });
+
+        // ── Hook into handleNewRequest to auto-audit when Live Audit is on ────
+        const _origHandleRequest = handleNewRequest;
+        handleNewRequest = function(data) {
+            _origHandleRequest(data);
+            if (liveAuditActive && data.id) {
+                liveAuditQueue.push(data.id);
+                drainAuditQueue();
+            }
+        };
+
+        async function drainAuditQueue() {
+            if (auditInFlight || !liveAuditQueue.length) return;
+            auditInFlight = true;
+            const flowId  = liveAuditQueue.shift();
+            try {
+                const r = await fetch('/api/network/ai/analyze-flow', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ flow_id: flowId }),
+                });
+                const d = await r.json();
+                if (d.risk) {
+                    const style    = RISK_STYLE[(d.risk || 'info').toLowerCase()] || RISK_STYLE.info;
+                    const riskCell = document.getElementById('risk-' + flowId);
+                    if (riskCell) riskCell.textContent = style.dot;
+                    // Highlight high-risk rows
+                    if (d.risk === 'high') {
+                        const row = document.getElementById('row-' + flowId);
+                        if (row) row.style.background = 'rgba(239,68,68,0.07)';
+                    }
+                }
+            } catch(_) {}
+            auditInFlight = false;
+            if (liveAuditQueue.length) drainAuditQueue();
+        }
+
+        // ── Show AI Suggest in repeater mode ──────────────────────────────────
+        const _origToggleRepeater = toggleRepeater;
+        toggleRepeater = function() {
+            _origToggleRepeater();
+            if (aiSuggestBtn) {
+                aiSuggestBtn.style.display = (repeaterMode && selectedId) ? 'inline-flex' : 'none';
+            }
+        };
+    })();
+
+    // ── Diff Viewer Functions ────────────────────────────────────────────────
+    let currentDiffData = null;
+    let currentFlowId = null;
+
+    async function showDiffViewer(flowId) {
+        // Show the diff viewer modal for a flow
+        currentFlowId = flowId;
+        
+        try {
+            const res = await fetch(`/api/network/flow/${flowId}/diff`);
+            const data = await res.json();
+            
+            if (data.status !== 'success') {
+                console.error('Failed to load diff:', data.message);
+                return;
+            }
+            
+            currentDiffData = data;
+            renderDiffViewer(data);
+        } catch (e) {
+            console.error('Error loading diff:', e);
+        }
     }
 
-    document.getElementById('btn-clear-traffic').onclick = () => {
-        trafficLog = [];
-        tbody.innerHTML = '';
-        logCount.textContent = '0';
-        inspReq.textContent = 'Select a request from the history table to view details.';
-        inspRes.textContent = '';
+    function renderDiffViewer(data) {
+        // Render the diff viewer modal
+        // Remove existing diff viewer
+        const existingOverlay = document.querySelector('.overlay');
+        const existingPanel = document.querySelector('.diff-panel');
+        if (existingOverlay) existingOverlay.remove();
+        if (existingPanel) existingPanel.remove();
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay';
+        overlay.onclick = closeDiffViewer;
+        
+        // Create diff panel
+        const panel = document.createElement('div');
+        panel.className = 'diff-panel';
+        
+        const original = data.original || {};
+        const modified = data.modified || {};
+        const diff = data.diff || {};
+        
+        // Format bodies for display
+        const formatBody = (body) => {
+            if (!body) return '';
+            if (typeof body === 'object') {
+                return JSON.stringify(body, null, 2);
+            }
+            return String(body);
+        };
+        
+        const origBody = formatBody(original.body);
+        const modBody = formatBody(modified.body);
+        
+        // Build header changes indicator
+        let changesText = [];
+        if (diff.status_changed) changesText.push(`Status: ${diff.status_diff?.original} → ${diff.status_diff?.modified}`);
+        if (diff.headers_added?.length) changesText.push(`+${diff.headers_added.length} headers`);
+        if (diff.headers_removed?.length) changesText.push(`-${diff.headers_removed.length} headers`);
+        if (diff.headers_modified?.length) changesText.push(`~${diff.headers_modified.length} headers`);
+        if (diff.body_changes?.length) changesText.push(`${diff.body_changes.length} body changes`);
+        
+        panel.innerHTML = `
+            <div class="diff-header">
+                <span class="diff-title">Response Diff — ${escapeHtml(data.flow_id?.slice(0, 8) || 'unknown')}</span>
+                <button onclick="closeDiffViewer()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">&times;</button>
+            </div>
+            <div class="diff-content">
+                <div class="diff-side">
+                    <div class="diff-side-header">
+                        <span>Original Response</span>
+                        <span style="color:var(--text-muted);">HTTP ${original.status_code || '—'}</span>
+                    </div>
+                    <pre class="diff-code">${escapeHtml(origBody)}</pre>
+                </div>
+                <div class="diff-side">
+                    <div class="diff-side-header">
+                        <span>Modified Response</span>
+                        <span style="color:var(--accent);">HTTP ${modified.status_code || '—'}</span>
+                    </div>
+                    <pre class="diff-code">${escapeHtml(modBody)}</pre>
+                </div>
+            </div>
+            <div class="diff-summary">
+                <span class="diff-changes-badge">${changesText.join(' | ') || 'No changes'}</span>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="downloadDiff()" class="btn btn--sm btn--ghost">Download Diff</button>
+                    <button onclick="closeDiffViewer()" class="btn btn--sm">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        document.body.appendChild(panel);
     }
 
-    // Init
-    connectWs();
+    function closeDiffViewer() {
+        // Close the diff viewer modal
+        const overlay = document.querySelector('.overlay');
+        const panel = document.querySelector('.diff-panel');
+        if (overlay) overlay.remove();
+        if (panel) panel.remove();
+        currentDiffData = null;
+    }
+
+    function downloadDiff() {
+        // Download the diff as JSON
+        if (!currentDiffData) return;
+        
+        const blob = new Blob([JSON.stringify(currentDiffData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `diff-${currentFlowId?.slice(0, 8) || 'flow'}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Add diff viewer button to inspector when flow is selected
+    const _origSelectRequest = selectRequest;
+    selectRequest = async function(id) {
+        await _origSelectRequest(id);
+        
+        // Add diff button to inspector if flow was modified
+        const flow = trafficLog.find(f => f.id === id);
+        if (flow?.is_modified || flow?.original_response) {
+            const inspHeader = document.querySelector('.inspector-header');
+            if (inspHeader && !inspHeader.querySelector('.btn-diff')) {
+                const diffBtn = document.createElement('button');
+                diffBtn.className = 'btn btn--sm btn--ghost btn-diff';
+                diffBtn.textContent = 'View Diff';
+                diffBtn.onclick = () => showDiffViewer(id);
+                diffBtn.style.marginLeft = 'auto';
+                inspHeader.appendChild(diffBtn);
+            }
+        }
+    };
+
+    // Keyboard shortcut to close diff viewer
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDiffViewer();
+    });
+
+    // ── Security Scan Functions ──────────────────────────────────────────────
+    async function runSecurityScan(flowId) {
+        // Run security analysis on a flow
+        const btn = document.querySelector('.btn-security-scan');
+        if (btn) {
+            btn.textContent = '⏳ Scanning...';
+            btn.disabled = true;
+        }
+        
+        try {
+            const res = await fetch(`/api/network/flow/${flowId}/security-test`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                displaySecurityFindings(data.findings, flowId);
+            } else {
+                alert('Security scan failed: ' + (data.message || 'Unknown error'));
+            }
+        } catch (e) {
+            console.error('Security scan error:', e);
+            alert('Security scan error: ' + e.message);
+        } finally {
+            if (btn) {
+                btn.textContent = '🔍 Security Scan';
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function displaySecurityFindings(findings, flowId) {
+        // Display security findings in the inspector
+        const ib = document.querySelector('.inspector-body');
+        if (!ib) return;
+        
+        // Remove existing security panel
+        const existing = ib.querySelector('.security-findings-panel');
+        if (existing) existing.remove();
+        
+        if (!findings || findings.length === 0) {
+            const panel = document.createElement('div');
+            panel.className = 'security-panel security-findings-panel';
+            panel.style.background = 'rgba(34, 197, 94, 0.08)';
+            panel.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+            panel.innerHTML = `
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:16px;">✅</span>
+                    <span style="font-weight:600; color:#22c55e;">No Security Issues Found</span>
+                </div>
+            `;
+            ib.insertBefore(panel, ib.firstChild);
+            return;
+        }
+        
+        // Group by severity
+        const bySeverity = {
+            critical: findings.filter(f => f.severity === 'critical'),
+            high: findings.filter(f => f.severity === 'high'),
+            medium: findings.filter(f => f.severity === 'medium'),
+            low: findings.filter(f => f.severity === 'low'),
+        };
+        
+        const panel = document.createElement('div');
+        panel.className = 'security-panel security-findings-panel';
+        
+        let findingsHtml = '';
+        
+        // Render findings by severity
+        ['critical', 'high', 'medium', 'low'].forEach(sev => {
+            const sevFindings = bySeverity[sev];
+            if (sevFindings.length > 0) {
+                findingsHtml += `
+                    <div style="margin-bottom:16px;">
+                        <div style="font-size:11px; font-weight:700; text-transform:uppercase; margin-bottom:8px; color:var(--${sev === 'critical' ? 'critical' : sev === 'high' ? 'warning' : 'text-muted'});">
+                            ${sev} (${sevFindings.length})
+                        </div>
+                        ${sevFindings.map(f => `
+                            <div style="padding:10px; background:var(--surface); border-radius:4px; margin-bottom:8px; border-left:3px solid ${sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : '#3b82f6'};">
+                                <div style="font-weight:600; font-size:12px; margin-bottom:4px;">${escapeHtml(f.title || f.test)}</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">${escapeHtml(f.description || '')}</div>
+                                ${f.remediation ? `
+                                    <div style="font-size:10px; color:var(--text-muted); padding:6px; background:var(--surface-raised); border-radius:3px;">
+                                        <b>Fix:</b> ${escapeHtml(f.remediation)}
+                                    </div>
+                                ` : ''}
+                                ${f.cwe ? `<div style="font-size:9px; color:var(--text-faint); margin-top:4px;">${f.cwe} | ${f.owasp || ''}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        });
+        
+        panel.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <span style="font-size:16px;">🛡️</span>
+                <span style="font-weight:700; color:var(--critical);">Security Findings (${findings.length})</span>
+                <span style="margin-left:auto; font-size:10px; background:var(--surface-raised); padding:2px 6px; border-radius:3px;">
+                    Risk Score: ${findings.reduce((acc, f) => {
+                        const weights = {critical: 10, high: 5, medium: 2, low: 1};
+                        return acc + (weights[f.severity] || 0);
+                    }, 0)}
+                </span>
+            </div>
+            ${findingsHtml}
+        `;
+        
+        ib.insertBefore(panel, ib.firstChild);
+    }
+
+    // Global security scan button
+    async function runGlobalSecurityScan() {
+        // Run security analysis on all flows
+        const btn = document.getElementById('btn-security-scan-all');
+        if (btn) {
+            btn.textContent = '⏳ Scanning all flows...';
+            btn.disabled = true;
+        }
+        
+        try {
+            const res = await fetch('/api/network/security/summary');
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                displayGlobalSecuritySummary(data);
+            } else {
+                alert('Security scan failed: ' + (data.message || 'Unknown error'));
+            }
+        } catch (e) {
+            console.error('Global security scan error:', e);
+            alert('Security scan error: ' + e.message);
+        } finally {
+            if (btn) {
+                btn.textContent = '🔍 Scan All Flows';
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function displayGlobalSecuritySummary(data) {
+        // Display global security summary
+        alert(`Security Summary:
+Flows Analyzed: ${data.total_flows}
+Total Findings: ${data.total_findings}
+Risk Score: ${data.risk_score}
+
+By Severity:
+- Critical: ${data.severity_summary.critical}
+- High: ${data.severity_summary.high}
+- Medium: ${data.severity_summary.medium}
+- Low: ${data.severity_summary.low}
+- Info: ${data.severity_summary.info}
+
+Top Recommendations:
+${data.recommendations?.slice(0, 3).map(r => `- ${r.action}`).join('\n') || 'None'}
+        `);
+    }
+
+    // ── iOS Proxy Setup Functions ─────────────────────────────────────────────
+    const iosProxyModal = document.getElementById('ios-proxy-modal');
+    const btnIosSetup = document.getElementById('btn-ios-proxy-setup');
+    const btnIosClose = document.getElementById('ios-modal-close');
+    const btnIosDone = document.getElementById('ios-modal-done');
+    const btnCopyProxy = document.getElementById('btn-copy-proxy');
+    const iosProxyHost = document.getElementById('ios-proxy-host');
+
+    // Get host IP for iOS proxy setup
+    async function getHostIp() {
+        try {
+            // Try to get IP from a simple check
+            const ips = [];
+            
+            // Get network interfaces via RTCPeerConnection (works in most browsers)
+            const pc = new RTCPeerConnection({iceServers: []});
+            pc.createDataChannel('');
+            
+            pc.onicecandidate = (e) => {
+                if (!e.candidate) return;
+                const ipMatch = /([0-9]{1,3}\.){3}[0-9]{1,3}/.exec(e.candidate.candidate);
+                if (ipMatch && !ipMatch[0].startsWith('0.') && !ipMatch[0].startsWith('127.')) {
+                    ips.push(ipMatch[0]);
+                }
+            };
+            
+            await pc.createOffer().then(o => pc.setLocalDescription(o));
+            
+            // Wait a bit for ICE candidates
+            await new Promise(r => setTimeout(r, 500));
+            
+            // Use first non-local IP or fallback
+            const hostIp = ips.length > 0 ? ips[0] : window.location.hostname;
+            return hostIp;
+        } catch (e) {
+            // Fallback to window location
+            return window.location.hostname;
+        }
+    }
+
+    // Update proxy host display
+    async function updateProxyHost() {
+        const host = await getHostIp();
+        if (iosProxyHost) {
+            iosProxyHost.textContent = host;
+        }
+        return host;
+    }
+
+    // Show iOS proxy modal
+    if (btnIosSetup && iosProxyModal) {
+        btnIosSetup.addEventListener('click', async () => {
+            await updateProxyHost();
+            iosProxyModal.showModal();
+        });
+    }
+
+    // Close modal handlers
+    if (btnIosClose && iosProxyModal) {
+        btnIosClose.addEventListener('click', () => iosProxyModal.close());
+    }
+    if (btnIosDone && iosProxyModal) {
+        btnIosDone.addEventListener('click', () => iosProxyModal.close());
+    }
+
+    // Copy proxy settings to clipboard
+    if (btnCopyProxy) {
+        btnCopyProxy.addEventListener('click', async () => {
+            const host = await getHostIp();
+            const proxySettings = `iOS Proxy Settings:
+Server: ${host}
+Port: 8080
+
+Certificate: http://mitm.it
+
+Setup Steps:
+1. Settings → Wi-Fi → (i) → Configure Proxy → Manual
+2. Enter Server: ${host}, Port: 8080
+3. Save, then visit http://mitm.it in Safari
+4. Install certificate, then enable trust in Settings → General → About → Certificate Trust Settings`;
+            
+            try {
+                await navigator.clipboard.writeText(proxySettings);
+                btnCopyProxy.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btnCopyProxy.textContent = '📋 Copy Proxy Settings';
+                }, 2000);
+            } catch (e) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = proxySettings;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                btnCopyProxy.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btnCopyProxy.textContent = '📋 Copy Proxy Settings';
+                }, 2000);
+            }
+        });
+    }
+
+    // Initialize proxy host on page load
+    if (iosProxyHost) {
+        updateProxyHost();
+    }
 </script>
+<style>
+@keyframes slideIn {
+    from { transform: translateX(40px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+</style>
 {% endblock %}

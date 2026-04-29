@@ -1,0 +1,33 @@
+[Unit]
+Description=IRVES - Intelligent Reverse Engineering & Vulnerability Evaluation System
+After=network.target
+
+[Service]
+Type=simple
+User=irves
+WorkingDirectory=/opt/irves/backend
+Environment="PATH=/opt/irves/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/opt/irves/backend/.venv/bin/python main.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/irves/backend/irves.db
+ReadWritePaths=/home/irves/.irves
+
+# Resource limits (adjust based on your system)
+LimitNOFILE=65536
+MemoryMax=4G
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=irves
+
+[Install]
+WantedBy=multi-user.target

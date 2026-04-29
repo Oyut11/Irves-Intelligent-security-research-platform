@@ -16,33 +16,11 @@ from pydantic import BaseModel
 
 from config import settings
 
+from services.settings_service import settings_service
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# ── Settings persistence path ─────────────────────────────────────────────────
-_SETTINGS_FILE = Path.home() / ".irves" / "settings.json"
-_SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-_DEFAULT_SETTINGS = {
-    "ai": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-6",
-        "api_key": "",
-    },
-    "device": {
-        "adb_path": "adb",
-        "frida_server_path": "/data/local/tmp/frida-server",
-    },
-    "mobsf": {
-        "url": "http://127.0.0.1:8000",
-        "api_key": "",
-    },
-    "scan": {
-        "default_profile": "standard",
-        "output_dir": str(Path.home() / ".irves" / "projects"),
-    },
-}
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -50,35 +28,14 @@ _DEFAULT_SETTINGS = {
 class SettingsPayload(BaseModel):
     ai: Optional[dict] = None
     device: Optional[dict] = None
-    mobsf: Optional[dict] = None
     scan: Optional[dict] = None
+    integrations: Optional[dict] = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _load_settings() -> dict:
-    """Load settings from disk, merging with defaults."""
-    if _SETTINGS_FILE.exists():
-        try:
-            on_disk = json.loads(_SETTINGS_FILE.read_text())
-            merged = {**_DEFAULT_SETTINGS}
-            for section, values in on_disk.items():
-                if section in merged and isinstance(values, dict):
-                    merged[section] = {**merged[section], **values}
-                else:
-                    merged[section] = values
-            return merged
-        except (json.JSONDecodeError, OSError):
-            pass
-    return dict(_DEFAULT_SETTINGS)
-
-
-def _save_settings(data: dict) -> None:
-    """Persist settings to disk."""
-    _SETTINGS_FILE.write_text(json.dumps(data, indent=2))
-
-
 async def _get_tool_version(executable: str) -> Optional[str]:
+
     """Probe a tool binary for its version string."""
     version_flags = {
         "apktool": ["--version"],
@@ -100,22 +57,6 @@ async def _get_tool_version(executable: str) -> Optional[str]:
         return raw.splitlines()[0] if raw else "unknown"
     except (FileNotFoundError, asyncio.TimeoutError, OSError):
         return None
-
-
-async def _check_mobsf(url: str, api_key: str = "") -> dict:
-    """Probe the MobSF REST API."""
-    try:
-        headers = {}
-        if api_key:
-            headers["Authorization"] = api_key
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{url}/api/v1/version", headers=headers)
-        if resp.status_code == 200:
-            data = resp.json()
-            return {"running": True, "version": data.get("version"), "error": None}
-        return {"running": False, "version": None, "error": f"HTTP {resp.status_code}"}
-    except Exception as e:
-        return {"running": False, "version": None, "error": str(e)}
 
 
 async def _check_adb_devices(adb_path: str = "adb") -> list[dict]:
@@ -156,9 +97,6 @@ async def get_tools_status():
     Returns installed state, path, version, and any error for each tool.
     """
     cli_tools = ["apktool", "jadx", "frida", "mitmproxy"]
-    stored = _load_settings()
-    mobsf_url = stored.get("mobsf", {}).get("url", settings.MOBSF_URL)
-    mobsf_key = stored.get("mobsf", {}).get("api_key", settings.MOBSF_API_KEY)
 
     # Run all checks concurrently
     async def _check_cli(name: str) -> dict:
@@ -172,17 +110,7 @@ async def get_tools_status():
             "error": None if path else f"{name} not found in PATH",
         }
 
-    cli_results = await asyncio.gather(*[_check_cli(t) for t in cli_tools])
-    mobsf_result = await _check_mobsf(mobsf_url, mobsf_key)
-
-    tools = list(cli_results) + [{
-        "name": "mobsf",
-        "installed": mobsf_result["running"],
-        "running": mobsf_result["running"],
-        "path": mobsf_url,
-        "version": mobsf_result.get("version"),
-        "error": mobsf_result.get("error"),
-    }]
+    tools = list(await asyncio.gather(*[_check_cli(t) for t in cli_tools]))
 
     # Summary
     installed_count = sum(1 for t in tools if t.get("installed"))
@@ -213,7 +141,7 @@ async def list_adb_devices():
     List all devices connected via ADB (USB + emulators).
     Useful for selecting a runtime target for Frida.
     """
-    stored = _load_settings()
+    stored = settings_service.load()
     adb_path = stored.get("device", {}).get("adb_path", "adb") or "adb"
     devices = await _check_adb_devices(adb_path)
     return {"devices": devices, "count": len(devices)}
@@ -222,7 +150,7 @@ async def list_adb_devices():
 @router.post("/devices/refresh")
 async def refresh_adb_devices():
     """Re-run adb kill-server && adb start-server, then return device list."""
-    stored = _load_settings()
+    stored = settings_service.load()
     adb_path = stored.get("device", {}).get("adb_path", "adb") or "adb"
 
     async def _restart():
@@ -242,17 +170,34 @@ async def refresh_adb_devices():
     return {"devices": devices, "count": len(devices)}
 
 
+@router.post("/devices/{device_id}/deploy-frida")
+async def deploy_frida(device_id: str):
+    """Automatically resolve architecture and push/start frida-server to an Android device."""
+    from services.frida_service import FridaService
+    service = FridaService()
+    try:
+        msg = await service.deploy_server(device_id)
+        return {"status": "success", "message": msg}
+    except Exception as e:
+        logger.error(f"Failed to deploy frida: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/settings")
 async def get_settings():
     """Retrieve all persisted settings (API keys are masked)."""
-    data = _load_settings()
+    data = settings_service.load()
     # Mask secrets
     if data.get("ai", {}).get("api_key"):
         key = data["ai"]["api_key"]
         data["ai"]["api_key"] = key[:6] + "…" + key[-4:] if len(key) > 12 else "***"
-    if data.get("mobsf", {}).get("api_key"):
-        key = data["mobsf"]["api_key"]
-        data["mobsf"]["api_key"] = key[:4] + "…" if len(key) > 6 else "***"
+    # Mask integrations
+    integrations = data.get("integrations", {})
+    for provider in ["github", "gitlab"]:
+        if integrations.get(provider, {}).get("access_token"):
+            token = integrations[provider]["access_token"]
+            integrations[provider]["access_token"] = token[:4] + "…" + token[-4:] if len(token) > 10 else "***"
+            
     return data
 
 
@@ -262,7 +207,7 @@ async def save_settings(payload: SettingsPayload):
     Persist settings to disk (~/.irves/settings.json).
     Partial updates are supported — only provided sections are overwritten.
     """
-    current = _load_settings()
+    current = settings_service.load()
 
     if payload.ai is not None:
         # Never overwrite key with masked placeholder
@@ -272,28 +217,175 @@ async def save_settings(payload: SettingsPayload):
         for k, v in payload.ai.items():
             if k != "api_key":
                 current.setdefault("ai", {})[k] = v
+        # Apply AI settings to live config so they take effect immediately
+        ai_cfg = current.get("ai", {})
+        if ai_cfg.get("api_key"):
+            settings.AI_API_KEY = ai_cfg["api_key"]
+        if ai_cfg.get("model"):
+            settings.AI_MODEL = ai_cfg["model"]
+        if ai_cfg.get("api_base"):
+            settings.AI_API_BASE = ai_cfg["api_base"]
+        if ai_cfg.get("provider"):
+            settings.AI_PROVIDER = ai_cfg["provider"]
+
+        # Also set provider-specific key so LiteLLM can route natively
+        _PROVIDER_KEY_MAP = {
+            "anthropic":   "ANTHROPIC_API_KEY",
+            "openai":      "OPENAI_API_KEY",
+            "gemini":      "GEMINI_API_KEY",
+            "xai":         "XAI_API_KEY",
+            "deepseek":    "DEEPSEEK_API_KEY",
+            "together":    "TOGETHER_AI_API_KEY",
+            "huggingface": "HUGGINGFACE_API_KEY",
+        }
+        provider_name = ai_cfg.get("provider", "")
+        key_val = ai_cfg.get("api_key", "")
+        if provider_name in _PROVIDER_KEY_MAP and key_val:
+            attr = _PROVIDER_KEY_MAP[provider_name]
+            setattr(settings, attr, key_val)
+            # Also persist the provider-specific key
+            current.setdefault("ai", {})[attr] = key_val
 
     if payload.device is not None:
         current.setdefault("device", {}).update(payload.device)
 
-    if payload.mobsf is not None:
-        new_key = payload.mobsf.get("api_key", "")
-        if new_key and "…" not in new_key and new_key != "***":
-            current.setdefault("mobsf", {})["api_key"] = new_key
-        for k, v in payload.mobsf.items():
-            if k != "api_key":
-                current.setdefault("mobsf", {})[k] = v
-
     if payload.scan is not None:
         current.setdefault("scan", {}).update(payload.scan)
 
-    _save_settings(current)
+    if payload.integrations is not None:
+        # Avoid masking overwrite
+        for provider in ["github", "gitlab"]:
+            if provider in payload.integrations:
+                new_token = payload.integrations[provider].get("access_token", "")
+                if new_token and "…" not in new_token and new_token != "***":
+                    current.setdefault("integrations", {}).setdefault(provider, {})["access_token"] = new_token
+                for k, v in payload.integrations[provider].items():
+                    if k != "access_token":
+                        current.setdefault("integrations", {}).setdefault(provider, {})[k] = v
+
+    settings_service.save(current)
     logger.info("[Settings] Saved to disk")
     return {"status": "saved"}
+
+
+@router.post("/test-ai")
+async def test_ai_connection():
+    """Quick probe to verify the configured AI provider responds."""
+    from litellm import completion
+    from services.ai_service import ai_service
+
+    # Temporarily clear proxy vars for test connection only
+    old_http_proxy = os.environ.get("HTTP_PROXY")
+    old_https_proxy = os.environ.get("HTTPS_PROXY")
+    old_http_proxy_lc = os.environ.get("http_proxy")
+    old_https_proxy_lc = os.environ.get("https_proxy")
+    try:
+        os.environ["HTTP_PROXY"] = ""
+        os.environ["HTTPS_PROXY"] = ""
+        os.environ["http_proxy"] = ""
+        os.environ["https_proxy"] = ""
+
+        model    = ai_service._get_model()
+        api_base = ai_service._resolve_api_base()
+        api_key  = ai_service._get_api_key()
+        is_local = ai_service._is_local_provider()
+        timeout  = 60 if is_local else 30
+
+        def _probe():
+            resp = completion(
+                model=model,
+                api_key=api_key,
+                api_base=api_base,
+                messages=[{"role": "user", "content": "Reply with the single word: ok"}],
+                max_tokens=16,
+                stream=False,
+                timeout=timeout,
+            )
+            return (resp.choices[0].message.content or "").strip()
+
+        text = await _aio.get_event_loop().run_in_executor(None, _probe)
+        return {"ok": True, "model": settings.AI_MODEL, "reply": text[:80]}
+    except Exception as e:
+        err = str(e).lower()
+        provider = (settings.AI_PROVIDER or "").lower()
+        is_local_provider = provider in ("ollama", "local")
+
+        if "not found" in err or "404" in err:
+            if is_local_provider:
+                error = f"Model '{settings.AI_MODEL}' not found — run: ollama pull {settings.AI_MODEL}"
+            else:
+                error = f"Model '{settings.AI_MODEL}' not found on {provider.title()} — check the model name in your provider's dashboard"
+        elif "refused" in err or "connect" in err:
+            if is_local_provider:
+                error = "Cannot connect to AI server — is Ollama running? (ollama serve)"
+            else:
+                error = f"Cannot connect to {provider.title()} API — check your network or API base URL"
+        elif "timeout" in err or "timed out" in err:
+            if is_local_provider:
+                error = f"Timed out after {timeout}s — model may still be loading, try again"
+            else:
+                error = f"Timed out after {timeout}s — {provider.title()} may be experiencing high load"
+        elif "api key" in err or "auth" in err or "unauthorized" in err or "401" in err:
+            error = f"Authentication failed for {provider.title()} — check your API key"
+        elif "quota" in err or "429" in err or "rate" in err:
+            error = f"Rate limit or quota exceeded on {provider.title()} — check your billing/usage"
+        else:
+            error = str(e)[:200]
+        return {"ok": False, "model": settings.AI_MODEL, "error": error}
+    finally:
+        # Restore original proxy values
+        if old_http_proxy is not None:
+            os.environ["HTTP_PROXY"] = old_http_proxy
+        elif "HTTP_PROXY" in os.environ:
+            del os.environ["HTTP_PROXY"]
+        if old_https_proxy is not None:
+            os.environ["HTTPS_PROXY"] = old_https_proxy
+        elif "HTTPS_PROXY" in os.environ:
+            del os.environ["HTTPS_PROXY"]
+        if old_http_proxy_lc is not None:
+            os.environ["http_proxy"] = old_http_proxy_lc
+        elif "http_proxy" in os.environ:
+            del os.environ["http_proxy"]
+        if old_https_proxy_lc is not None:
+            os.environ["https_proxy"] = old_https_proxy_lc
+        elif "https_proxy" in os.environ:
+            del os.environ["https_proxy"]
+
+
+@router.get("/ollama-models")
+async def list_ollama_models():
+    """Auto-detect locally available Ollama models."""
+    base = settings.AI_API_BASE or "http://localhost:11434"
+    base = base.rstrip("/").replace("/v1", "")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{base}/api/tags")
+            resp.raise_for_status()
+            data = resp.json()
+        models = []
+        for m in data.get("models", []):
+            name = m.get("name", "")
+            if not name:
+                continue
+            size_gb = round(m.get("size", 0) / 1e9, 1)
+            details = m.get("details", {})
+            models.append({
+                "name": name,
+                "size_gb": size_gb,
+                "family": details.get("family", ""),
+                "params": details.get("parameter_size", ""),
+                "quant": details.get("quantization_level", ""),
+            })
+        return {"status": "ok", "models": models}
+    except httpx.ConnectError:
+        return {"status": "error", "message": "Cannot connect to Ollama. Make sure it is running: `ollama serve`", "models": []}
+    except Exception as e:
+        return {"status": "error", "message": str(e)[:200], "models": []}
 
 
 @router.post("/settings/reset")
 async def reset_settings():
     """Reset all settings to defaults."""
-    _save_settings(_DEFAULT_SETTINGS)
+    from services.settings_service import _DEFAULT_SETTINGS
+    settings_service.save(_DEFAULT_SETTINGS)
     return {"status": "reset"}

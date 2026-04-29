@@ -1,13 +1,55 @@
 import json
 from typing import List
+from collections import defaultdict
 from database.models import FindingSeverity
 from models.finding import FindingCreate
 from services.tool_runner import ToolResult
 
+def deduplicate_findings(findings: List[FindingCreate]) -> List[FindingCreate]:
+    """Deduplicate findings by title + category, collapsing affected files."""
+    if not findings:
+        return []
+    
+    grouped = defaultdict(lambda: {"locations": [], "severities": set(), "first": None})
+    
+    for f in findings:
+        key = (f.title, f.category)
+        grouped[key]["locations"].append(f.location or "")
+        grouped[key]["severities"].add(f.severity)
+        # Keep the first finding as the base
+        if grouped[key]["first"] is None:
+            grouped[key]["first"] = f
+    
+    unique = []
+    for (title, category), group in grouped.items():
+        base = group["first"]
+        # Use the highest severity
+        severity_order = {
+            FindingSeverity.CRITICAL: 5,
+            FindingSeverity.HIGH: 4,
+            FindingSeverity.MEDIUM: 3,
+            FindingSeverity.LOW: 2,
+            FindingSeverity.INFO: 1,
+        }
+        highest_sev = max(group["severities"], key=lambda s: severity_order.get(s, 0))
+        
+        # Collapse locations into a comma-separated list
+        unique_locations = list(set(group["locations"]))
+        locations_str = ", ".join(unique_locations[:3])
+        if len(unique_locations) > 3:
+            locations_str += f" (+{len(unique_locations) - 3} more)"
+        
+        # Create a new finding with collapsed data
+        base.location = locations_str
+        base.severity = highest_sev
+        base.description = f"{base.description or ''} Affected files: {len(unique_locations)}"
+        unique.append(base)
+    
+    return unique
+
 async def parse_tool_output(tool_name: str, result: ToolResult) -> List[FindingCreate]:
     """Parse tool output into standardized findings."""
     parsers = {
-        "mobsf": parse_mobsf,
         "jadx": parse_jadx,
         "apktool": parse_apktool,
         "frida": parse_frida,
@@ -18,64 +60,10 @@ async def parse_tool_output(tool_name: str, result: ToolResult) -> List[FindingC
     if not parser:
         return []
     
-    return await parser(result)
-
-
-async def parse_mobsf(result: ToolResult) -> List[FindingCreate]:
-    """Parse MobSF JSON report."""
-    findings = []
+    findings = await parser(result)
     
-    try:
-        if not result.output:
-            return findings
-            
-        report = json.loads(result.output)
-        
-        # Security findings
-        for issue in report.get("security", []):
-            findings.append(FindingCreate(
-                scan_id="tmp",  # This will be replaced during creation
-                title=issue.get("title", "Unknown issue"),
-                severity=map_mobsf_severity(issue.get("severity", "info")),
-                category=issue.get("category", "General"),
-                location=issue.get("file", ""),
-                description=issue.get("description", ""),
-                tool="mobsf",
-                owasp_mapping=issue.get("owasp", "")
-            ))
-        
-        # Manifest issues
-        for issue in report.get("manifest_analysis", []):
-            findings.append(FindingCreate(
-                scan_id="tmp",
-                title=issue.get("title", "Manifest issue"),
-                severity=map_mobsf_severity(issue.get("severity", "medium")),
-                category="Android Manifest",
-                location="AndroidManifest.xml",
-                description=issue.get("description", ""),
-                tool="mobsf"
-            ))
-    
-    except json.JSONDecodeError:
-        pass
-    except Exception:
-        pass
-    
-    return findings
-
-
-def map_mobsf_severity(severity: str) -> FindingSeverity:
-    """Map MobSF severity to IRVES severity."""
-    severity = str(severity).lower()
-    mapping = {
-        "high": FindingSeverity.CRITICAL,
-        "critical": FindingSeverity.CRITICAL,
-        "warning": FindingSeverity.HIGH,
-        "medium": FindingSeverity.MEDIUM,
-        "secure": FindingSeverity.LOW,
-        "info": FindingSeverity.INFO
-    }
-    return mapping.get(severity, FindingSeverity.MEDIUM)
+    # Deduplicate findings at parser level
+    return deduplicate_findings(findings)
 
 
 async def parse_jadx(result: ToolResult) -> List[FindingCreate]:

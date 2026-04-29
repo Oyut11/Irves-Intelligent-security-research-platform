@@ -9,7 +9,7 @@
   <title>{% block title %}IRVES{% endblock %}</title>
 
   <!-- Design system -->
-  <link rel="stylesheet" href="/static/css/irves.css" />
+  <link rel="stylesheet" href="/static/css/irves.css?v=3" />
 
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
@@ -34,6 +34,7 @@
           </svg>
         </button>
 
+        <img src="/static/images/logo.svg" alt="IRVES" class="topbar__logo" width="28" height="28" />
         <div class="topbar__wordmark">
           <span class="topbar__wordmark-name">IRVES</span>
           <span class="topbar__wordmark-version">v0.1.0 · alpha</span>
@@ -75,10 +76,10 @@
         {% set nav_items = [
         ("projects", "/", "Projects", "folder"),
         ("scan", "/scan", "Scan", "search"),
-        ("live_scan", "/live-scan", "Live Scan View", "activity"),
         ("runtime", "/runtime", "Runtime Workspace", "cpu"),
         ("network", "/network", "Network Intercept", "globe"),
         ("dashboard", "/dashboard", "Dashboard", "grid"),
+        ("source-analysis", "/source-analysis", "Source Code Analysis", "code"),
         ("reports", "/reports", "Reports", "file-text"),
         ("settings", "/settings", "Settings", "settings"),
         ] %}
@@ -123,7 +124,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=8"></script>
   {% block scripts %}{% endblock %}
 </body>
 

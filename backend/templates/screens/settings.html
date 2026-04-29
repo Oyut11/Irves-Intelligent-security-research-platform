@@ -42,6 +42,7 @@
         <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-3);">
             <button class="btn btn--ghost btn--sm" id="refresh-devices-btn" onclick="refreshDevices()">Refresh
                 ADB</button>
+            <button class="btn btn--primary btn--sm" id="deploy-frida-btn" onclick="deployFridaServer()" style="display:none;">Auto-Deploy Frida Server</button>
         </div>
     </section>
 
@@ -66,56 +67,97 @@
         </div>
     </section>
 
-    <!-- ── MobSF Configuration ────────────────────────────────────── -->
-    <section style="margin-bottom:var(--sp-8);" id="settings-mobsf-section">
-        <div class="section-label">MobSF Configuration</div>
-        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
-            <div class="field">
-                <label class="field__label" for="mobsf-url-input">MobSF Server URL</label>
-                <input class="field__input" type="text" id="mobsf-url-input" placeholder="http://127.0.0.1:8000"
-                    autocomplete="off" />
-            </div>
-            <div class="field">
-                <label class="field__label" for="mobsf-api-key-input">MobSF API Key</label>
-                <input class="field__input" type="password" id="mobsf-api-key-input" placeholder="your-mobsf-api-key"
-                    autocomplete="off" />
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span id="mobsf-status-label" style="font-size:12px;color:var(--text-muted);"></span>
-                <div style="display:flex;gap:var(--sp-3);">
-                    <button class="btn btn--ghost btn--sm" id="test-mobsf-btn" onclick="testMobSF()">Test
-                        Connection</button>
-                    <button class="btn btn--ghost btn--sm" id="save-mobsf-btn"
-                        onclick="saveSection('mobsf')">Save</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ── AI Configuration ───────────────────────────────────────── -->
     <section style="margin-bottom:var(--sp-8);" id="settings-ai-section">
         <div class="section-label">AI Reasoning Layer</div>
         <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+
+            <!-- Provider -->
             <div class="field">
                 <label class="field__label" for="ai-provider-select">Provider</label>
-                <select class="field__select" id="ai-provider-select">
-                    <option value="anthropic">Anthropic (Claude)</option>
-                    <option value="openai">OpenAI (GPT-4)</option>
+                <select class="field__select" id="ai-provider-select" onchange="onProviderChange(this.value)">
+                    <optgroup label="Commercial APIs">
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="openai">OpenAI (ChatGPT)</option>
+                        <option value="gemini">Google (Gemini)</option>
+                        <option value="xai">xAI (Grok)</option>
+                        <option value="deepseek">Deepseek</option>
+                    </optgroup>
+                    <optgroup label="Open Source / Cloud Inference">
+                        <option value="together">Together AI</option>
+                        <option value="huggingface">Hugging Face</option>
+                    </optgroup>
+                    <optgroup label="Local / Offline">
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="local">Local AI (Custom)</option>
+                    </optgroup>
                 </select>
             </div>
-            <div class="field">
+
+            <!-- API Key -->
+            <div class="field" id="ai-api-key-field">
                 <label class="field__label" for="ai-api-key-input">API Key</label>
-                <input class="field__input" type="password" id="ai-api-key-input" placeholder="sk-…"
-                    autocomplete="off" />
+                <input class="field__input" type="password" id="ai-api-key-input" placeholder="sk-…" autocomplete="off" />
+                <div class="field__hint" id="ai-api-key-hint"></div>
             </div>
+
+            <!-- API Base URL -->
+            <div class="field" id="ai-base-url-field" style="display:none;">
+                <label class="field__label" for="ai-base-url-input">API Base URL</label>
+                <input class="field__input" type="text" id="ai-base-url-input" placeholder="http://localhost:11434" autocomplete="off" />
+                <div class="field__hint">Override the default endpoint (required for Ollama &amp; local models)</div>
+            </div>
+
+            <!-- Model -->
             <div class="field">
                 <label class="field__label" for="ai-model-input">Model</label>
-                <input class="field__input" type="text" id="ai-model-input" placeholder="claude-sonnet-4-6"
-                    autocomplete="off" />
+                <input class="field__input" type="text" id="ai-model-input" placeholder="claude-sonnet-4-6" autocomplete="off" />
+                <div class="field__hint" id="ai-model-hint"></div>
+                <div id="ai-model-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
             </div>
-            <div style="display:flex;justify-content:flex-end;">
-                <button class="btn btn--ghost btn--sm" id="save-ai-btn" onclick="saveSection('ai')">Save AI
-                    Config</button>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:var(--sp-3);">
+                    <button class="btn btn--ghost btn--sm" id="test-ai-btn" onclick="testAIConnection()">Test Connection</button>
+                    <span id="ai-test-status" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <button class="btn btn--ghost btn--sm" id="save-ai-btn" onclick="saveSection('ai')">Save AI Config</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Repository Integrations ────────────────────────────────── -->
+    <section style="margin-bottom:var(--sp-8);" id="settings-integrations-section">
+        <div class="section-label">Repository Integrations</div>
+        <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-4);">
+            <p style="font-size:12px;color:var(--text-muted);margin:0;">Connect your accounts to securely access private repositories without Personal Access Tokens.</p>
+            
+            <!-- GitHub -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3);background:var(--surface-raised);border-radius:var(--radius-md);border:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:var(--sp-3);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.041-1.416-4.041-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <div>
+                        <div style="font-size:13px;font-weight:600;">GitHub</div>
+                        <div style="font-size:11px;color:var(--text-muted);" id="github-status">Not connected</div>
+                    </div>
+                </div>
+                <div id="github-auth-actions">
+                    <button class="btn btn--primary btn--sm" onclick="location.href='/api/auth/github/login'">Connect</button>
+                </div>
+            </div>
+
+            <!-- GitLab -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-3);background:var(--surface-raised);border-radius:var(--radius-md);border:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:var(--sp-3);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#e24329"><path d="m23.505 13.503-1.317-4.055-.005-.014L19.69 1.706a.824.824 0 0 0-.783-.564.83.83 0 0 0-.784.564L15.63 9.434h-7.26L5.877 1.706a.831.831 0 0 0-1.568 0L1.817 9.434l-.005.014-1.317 4.055a.825.825 0 0 0 .3.921l11.205 8.14 11.206-8.14a.827.827 0 0 0 .299-.921Z"/></svg>
+                    <div>
+                        <div style="font-size:13px;font-weight:600;">GitLab</div>
+                        <div style="font-size:11px;color:var(--text-muted);" id="gitlab-status">Not connected</div>
+                    </div>
+                </div>
+                <div id="gitlab-auth-actions">
+                    <button class="btn btn--primary btn--sm" onclick="location.href='/api/auth/gitlab/login'">Connect</button>
+                </div>
             </div>
         </div>
     </section>
@@ -126,9 +168,8 @@
         <div class="card" style="display:flex;flex-direction:column;gap:var(--sp-3);">
             {% for name, desc, tools in [
             ("quick", "Fast static-only pass (~2 min)", "APKTool, JADX"),
-            ("standard", "Static + MobSF report (~5 min)", "APKTool, JADX, MobSF"),
-            ("full", "All tools including runtime (~15 min)", "APKTool, JADX, MobSF, Frida, mitmproxy"),
-            ("runtime_only", "Live session only, no static", "Frida, mitmproxy"),
+            ("full", "Complete static + runtime pass (~8.5 min)", "APKTool, JADX, Frida, mitmproxy"),
+            ("runtime", "Live session only, no static", "Frida, mitmproxy"),
             ] %}
             <div class="profile-row{% if not loop.last %} profile-row--bordered{% endif %}">
                 <div style="flex:1;">
@@ -247,17 +288,44 @@
                 document.getElementById('adb-path-input').value = data.device.adb_path || '';
                 document.getElementById('frida-server-path').value = data.device.frida_server_path || '';
             }
-            // MobSF
-            if (data.mobsf) {
-                document.getElementById('mobsf-url-input').value = data.mobsf.url || '';
-                document.getElementById('mobsf-api-key-input').value = data.mobsf.api_key || '';
-            }
             // AI
             if (data.ai) {
                 const provSel = document.getElementById('ai-provider-select');
-                if (provSel) provSel.value = data.ai.provider || 'anthropic';
+                const prov = data.ai.provider || 'anthropic';
+
+                // 1. Set values first so onProviderChange doesn't overwrite them
+                //    Strip LiteLLM prefix from model name for display (backend adds it back)
+                let modelVal = data.ai.model || '';
+                const _PREFIXES = ['anthropic/','openai/','gemini/','xai/','deepseek/','together_ai/','huggingface/','ollama/'];
+                for (const p of _PREFIXES) { if (modelVal.startsWith(p)) { modelVal = modelVal.slice(p.length); break; } }
+                document.getElementById('ai-model-input').value = modelVal;
+                document.getElementById('ai-base-url-input').value = data.ai.api_base || '';
                 document.getElementById('ai-api-key-input').value = data.ai.api_key || '';
-                document.getElementById('ai-model-input').value = data.ai.model || '';
+
+                // 2. Trigger provider change — passes isInitialLoad=true to suppress
+                //    model auto-fill, but autoDetect models are still fetched
+                if (provSel) {
+                    provSel.value = prov;
+                    onProviderChange(prov, true);
+                }
+            }
+            // Integrations
+            if (data.integrations) {
+                for (const provider of ['github', 'gitlab']) {
+                    const integ = data.integrations[provider];
+                    const statusEl = document.getElementById(`${provider}-status`);
+                    const actionsEl = document.getElementById(`${provider}-auth-actions`);
+                    
+                    if (integ && integ.connected) {
+                        statusEl.textContent = `Connected as ${integ.username}`;
+                        statusEl.style.color = 'var(--low)';
+                        actionsEl.innerHTML = `<button class="btn btn--ghost btn--sm" style="color:var(--critical);border-color:var(--critical);" onclick="disconnectIntegration('${provider}')">Disconnect</button>`;
+                    } else {
+                        statusEl.textContent = 'Not connected';
+                        statusEl.style.color = 'var(--text-muted)';
+                        actionsEl.innerHTML = `<button class="btn btn--primary btn--sm" onclick="connectGitPopup('${provider}')">Connect</button>`;
+                    }
+                }
             }
         } catch (e) { console.warn('Could not load settings:', e); }
     }
@@ -271,16 +339,12 @@
                 adb_path: document.getElementById('adb-path-input').value.trim(),
                 frida_server_path: document.getElementById('frida-server-path').value.trim(),
             };
-        } else if (section === 'mobsf') {
-            payload.mobsf = {
-                url: document.getElementById('mobsf-url-input').value.trim(),
-                api_key: document.getElementById('mobsf-api-key-input').value.trim(),
-            };
         } else if (section === 'ai') {
             payload.ai = {
                 provider: document.getElementById('ai-provider-select').value,
                 api_key: document.getElementById('ai-api-key-input').value.trim(),
                 model: document.getElementById('ai-model-input').value.trim(),
+                api_base: document.getElementById('ai-base-url-input').value.trim(),
             };
         }
 
@@ -297,6 +361,51 @@
             }
         } catch (e) {
             window.irves?.showToast('Save error: ' + e.message);
+        }
+    }
+
+    function connectGitPopup(provider) {
+        const authWin = window.open(`/api/auth/${provider}/login?return_to=/auth_success`, '_blank', 'width=600,height=800,scrollbars=yes');
+        
+        const pollTimer = setInterval(async () => {
+            if (authWin && authWin.closed) {
+                clearInterval(pollTimer);
+                loadSettings();
+            } else if (authWin) {
+                try {
+                    const r = await fetch('/api/settings/settings');
+                    const d = await r.json();
+                    if (d.integrations && d.integrations[provider] && d.integrations[provider].connected) {
+                        clearInterval(pollTimer);
+                        authWin.close();
+                        loadSettings();
+                        window.irves?.showToast(`Connected as ${d.integrations[provider].username}!`);
+                    }
+                } catch (e) {}
+            }
+        }, 1000);
+    }
+
+
+
+    async function disconnectIntegration(provider) {
+        if (!confirm(`Disconnect your ${provider} account?`)) return;
+        
+        try {
+            const payload = { integrations: {} };
+            payload.integrations[provider] = { connected: false, access_token: "", username: "" };
+            
+            const res = await fetch(API + '/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                window.irves?.showToast(`${provider} disconnected`);
+                loadSettings();
+            }
+        } catch (e) {
+            window.irves?.showToast('Disconnect failed: ' + e.message);
         }
     }
 
@@ -364,8 +473,13 @@
 
             if (devices.length === 0) {
                 panel.innerHTML = '<div style="padding:var(--sp-4);color:var(--text-muted);font-size:13px;">No ADB devices connected. Connect a device or start an emulator.</div>';
+                document.getElementById('deploy-frida-btn').style.display = 'none';
                 return;
             }
+
+            document.getElementById('deploy-frida-btn').style.display = '';
+            // Store first device as target for deployment button
+            window._lastDeviceId = devices[0].serial;
 
             panel.innerHTML = devices.map(d => `
             <div class="device-row">
@@ -399,27 +513,26 @@
         }
     }
 
-    // ── MobSF connection test ──────────────────────────────────────────
-    async function testMobSF() {
-        const label = document.getElementById('mobsf-status-label');
-        label.textContent = 'Testing…';
-        label.style.color = 'var(--text-muted)';
-
-        const url = document.getElementById('mobsf-url-input').value.trim() || 'http://127.0.0.1:8000';
+    async function deployFridaServer() {
+        if (!window._lastDeviceId) return;
+        const btn = document.getElementById('deploy-frida-btn');
+        btn.disabled = true;
+        btn.textContent = 'Deploying...';
+        
         try {
-            const res = await fetch(API + '/tools/status');
+            const res = await fetch(API + '/devices/' + encodeURIComponent(window._lastDeviceId) + '/deploy-frida', { method: 'POST' });
             const data = await res.json();
-            const mobsf = (data.tools || []).find(t => t.name === 'mobsf');
-            if (mobsf && mobsf.running) {
-                label.textContent = `✓ Connected — v${mobsf.version || 'unknown'}`;
-                label.style.color = 'var(--low)';
+            if(res.ok) {
+                window.irves?.showToast(data.message || 'Frida server deployed successfully');
             } else {
-                label.textContent = `✗ Not reachable — ${mobsf?.error || 'check URL'}`;
-                label.style.color = 'var(--critical)';
+                window.irves?.showToast('Error: ' + (data.detail || 'Failed to deploy'));
             }
-        } catch (e) {
-            label.textContent = `✗ Error: ${e.message}`;
-            label.style.color = 'var(--critical)';
+        } catch(e) {
+            window.irves?.showToast('Network error: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Auto-Deploy Frida Server';
+            loadToolStatus(); // Refresh tools to show it running
         }
     }
 
@@ -427,6 +540,164 @@
     const _style = document.createElement('style');
     _style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
     document.head.appendChild(_style);
+
+    // ── AI connection test ─────────────────────────────────────────────
+    async function testAIConnection() {
+        const btn = document.getElementById('test-ai-btn');
+        const status = document.getElementById('ai-test-status');
+        btn.disabled = true;
+        status.style.color = 'var(--text-muted)';
+        status.textContent = 'Testing…';
+        try {
+            const res = await fetch(API + '/test-ai', { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                status.style.color = 'var(--low)';
+                status.textContent = `✓ ${data.model} responded`;
+            } else {
+                status.style.color = 'var(--critical)';
+                status.textContent = `✗ ${data.error || 'No response'}`;
+            }
+        } catch (e) {
+            status.style.color = 'var(--critical)';
+            status.textContent = `✗ ${e.message}`;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // Re-render chip active states after a model is selected from chips
+    function refreshModelChips() {
+        const currentModel = document.getElementById('ai-model-input').value.trim();
+        document.querySelectorAll('#ai-model-chips button[data-model]').forEach(btn => {
+            const isActive = btn.dataset.model === currentModel;
+            btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+            btn.style.color       = isActive ? 'var(--accent)' : 'var(--text-muted)';
+        });
+    }
+
+    // ── Provider-specific UX ──────────────────────────────────────────
+    const PROVIDER_MODELS = {
+        anthropic: {
+            key_hint: 'Get your key at console.anthropic.com',
+            models: ['claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
+            needs_base: false,
+        },
+        openai: {
+            key_hint: 'Get your key at platform.openai.com',
+            models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o3-mini'],
+            needs_base: false,
+        },
+        gemini: {
+            key_hint: 'Get your key at aistudio.google.com',
+            models: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+            needs_base: false,
+        },
+        xai: {
+            key_hint: 'Get your key at console.x.ai',
+            models: ['grok-2', 'grok-2-mini', 'grok-3'],
+            needs_base: false,
+        },
+        deepseek: {
+            key_hint: 'Get your key at platform.deepseek.com',
+            models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'],
+            needs_base: false,
+        },
+        together: {
+            key_hint: 'Get your key at api.together.xyz',
+            models: ['meta-llama/Llama-3-70b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1', 'Qwen/Qwen2.5-72B-Instruct'],
+            needs_base: false,
+        },
+        huggingface: {
+            key_hint: 'Get your token at huggingface.co/settings/tokens',
+            models: ['meta-llama/Meta-Llama-3-8B-Instruct', 'mistralai/Mistral-7B-Instruct-v0.2'],
+            needs_base: false,
+        },
+        ollama: {
+            key_hint: 'No API key needed for local Ollama.',
+            models: [],
+            needs_base: true,
+            base_placeholder: 'http://localhost:11434',
+            autoDetect: true,
+        },
+        local: {
+            key_hint: 'API key for your local server if required.',
+            models: [],
+            needs_base: true,
+            base_placeholder: 'http://localhost:8080/v1',
+        },
+    };
+
+    function onProviderChange(provider, isInitialLoad = false) {
+        const cfg = PROVIDER_MODELS[provider] || {};
+        const keyField = document.getElementById('ai-api-key-field');
+        const keyHint = document.getElementById('ai-api-key-hint');
+        const baseField = document.getElementById('ai-base-url-field');
+        const baseInput = document.getElementById('ai-base-url-input');
+        const modelInput = document.getElementById('ai-model-input');
+        const modelHint = document.getElementById('ai-model-hint');
+        const chips = document.getElementById('ai-model-chips');
+
+        // Key hint
+        keyHint.textContent = cfg.key_hint || '';
+
+        // Ollama/local = key optional
+        if (cfg.needs_base) {
+            keyField.style.opacity = '0.5';
+            baseField.style.display = '';
+            if (cfg.base_placeholder) {
+                baseInput.placeholder = cfg.base_placeholder;
+                // Only auto-fill if empty
+                if (!baseInput.value) baseInput.value = cfg.base_placeholder;
+            }
+        } else {
+            keyField.style.opacity = '1';
+            baseField.style.display = 'none';
+            // Clear base URL for cloud providers unless explicitly set for some reason
+            if (provider !== 'local' && !isInitialLoad) baseInput.value = '';
+        }
+
+        // Model chips
+        if (cfg.autoDetect) {
+            // Auto-detect models from Ollama — always runs, even on initial load
+            modelHint.textContent = 'Detecting local models…';
+            chips.innerHTML = '';
+            fetch('/api/settings/ollama-models')
+                .then(r => r.json())
+                .then(data => {
+                    const currentModel = modelInput.value.trim();
+                    if (data.status === 'ok' && data.models.length) {
+                        modelHint.textContent = 'Available local models (click to use):';
+                        chips.innerHTML = data.models.map(m => {
+                            const label = m.params ? `${m.name} \u2014 ${m.params}` : m.name;
+                            const isActive = currentModel === m.name;
+                            const borderC = isActive ? 'var(--accent)' : 'var(--border)';
+                            const colorC  = isActive ? 'var(--accent)' : 'var(--text-muted)';
+                            return `<button type="button" data-model="${m.name}" onclick="document.getElementById('ai-model-input').value='${m.name}';refreshModelChips()" style="font-size:10px;font-family:var(--font-mono);padding:3px 8px;border-radius:4px;background:var(--surface-raised);border:1px solid ${borderC};color:${colorC};cursor:pointer;transition:border-color .15s,color .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='${borderC}';this.style.color='${colorC}'">${label}</button>`;
+                        }).join('');
+                        // Auto-fill only when model field is empty and not initial load
+                        if (!currentModel && !isInitialLoad) modelInput.value = data.models[0].name;
+                    } else {
+                        const msg = data.message || 'No local models found.';
+                        modelHint.innerHTML = `<span style="color:var(--warning)">${msg}</span> &nbsp;<code style="font-size:10px;">ollama pull llama3.2</code>`;
+                    }
+                })
+                .catch(() => {
+                    modelHint.innerHTML = '<span style="color:var(--critical)">Could not reach Ollama.</span> Make sure it is running: <code style="font-size:10px;">ollama serve</code>';
+                });
+        } else {
+            const suggested = cfg.models || [];
+            modelHint.textContent = suggested.length ? 'Suggested models (click to use):' : '';
+            chips.innerHTML = suggested.map(m =>
+                `<button type="button" onclick="document.getElementById('ai-model-input').value='${m}'" style="font-size:10px;font-family:var(--font-mono);padding:3px 8px;border-radius:4px;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${m}</button>`
+            ).join('');
+
+            // Pre-fill model ONLY if empty AND it's not the initial page load
+            if (!modelInput.value && suggested.length && !isInitialLoad) {
+                modelInput.value = suggested[0];
+            }
+        }
+    }
 
     // ── Init ──────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {

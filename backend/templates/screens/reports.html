@@ -20,10 +20,10 @@
             <div class="radio-group" id="report-template-group" role="radiogroup" aria-label="Report template">
                 {% for val, label, desc in [
                 ("masvs", "OWASP MASVS", "Mobile standard — pass/fail compliance"),
-                ("owasp_top_10", "OWASP Top 10", "Web standard — injection, auth, SSRF…"),
+                ("owasp_top10", "OWASP Top 10", "Web standard — injection, auth, SSRF…"),
                 ("sbom", "SBOM", "Dependency bill — libraries + CVEs"),
-                ("privacy_audit", "Privacy Audit", "Data flow — collection, transmission, encryption"),
-                ("executive_summary", "Executive Summary", "Non-technical — for CTOs and clients"),
+                ("privacy", "Privacy Audit", "Data flow — collection, transmission, encryption"),
+                ("executive", "Executive Summary", "Non-technical — for CTOs and clients"),
                 ("custom", "Custom", "Build your own — drag sections, add branding"),
                 ] %}
                 <label class="radio-option {% if loop.first %}selected{% endif %}" id="template-{{ val }}-label">
@@ -89,7 +89,7 @@
                 </div>
                 <div class="report-status" data-id="{{ r.id }}">
                     {% if r.file_path %}
-                    <a class="btn btn--ghost btn--sm" href="/api/report/download/{{ r.id }}" download>Download</a>
+                    <button class="btn btn--ghost btn--sm" onclick="openReportNatively('{{ r.id }}')">Open File</button>
                     {% else %}
                     <span style="font-size:11px;color:var(--text-muted);font-style:italic;">Generating…</span>
                     {% endif %}
@@ -119,38 +119,120 @@
         btn.classList.add('active');
     }
 
+    /* ── Generate Report (fully inline, no page reload) ─────────────────── */
     async function generateReport() {
         const template = document.querySelector('input[name="report_template"]:checked').value;
         const format = document.querySelector('[data-format].active').dataset.format;
         const scope = document.querySelector('input[name="report_scope"]:checked').value;
+        const generateBtn = document.getElementById('generate-report-btn');
+
+        // Disable button to prevent double-clicks
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating…';
 
         try {
-            const response = await fetch('/api/reports/generate', {
+            const response = await fetch('/api/report/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ project_id: projectId, template, format, scope })
             });
             if (!response.ok) throw new Error('Failed to start generation');
-            window.location.reload();
+            const report = await response.json();
+
+            // Show toast
+            showToast('Report generation started…');
+
+            // Inject a new row into the Past Reports panel immediately
+            const panel = document.getElementById('past-reports-panel');
+            // Remove "No reports" placeholder if present
+            const placeholder = panel.querySelector('div[style*="text-align:center"]');
+            if (placeholder) placeholder.remove();
+
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
+            const row = document.createElement('div');
+            row.id = `report-row-${report.id}`;
+            row.style.cssText = 'display:flex;align-items:center;padding:var(--sp-4) var(--sp-5);border-bottom:1px solid var(--border);';
+            row.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;">
+                    <span style="font-size:13px;font-weight:500;">${template.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} · ${format.toUpperCase()}</span>
+                    <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);">${dateStr}</span>
+                </div>
+                <div class="report-status" data-id="${report.id}">
+                    <span style="font-size:11px;color:var(--text-muted);font-style:italic;">Generating…</span>
+                </div>
+            `;
+            panel.prepend(row);
+
+            // Poll THIS specific report until file_path is set, then auto-open
+            pollUntilReady(report.id);
+
         } catch (e) {
-            window.irves?.showToast('Error: ' + e.message);
+            showToast('Error: ' + e.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Report';
         }
     }
 
-    function pollReports() {
-        document.querySelectorAll('.report-status').forEach(async (el) => {
-            if (el.querySelector('span')) {
-                const id = el.dataset.id;
-                const res = await fetch(`/api/reports/${id}/status`);
+    /* ── Poll a single report until ready, then auto-open ───────────────── */
+    function pollUntilReady(reportId) {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/report/${reportId}`, { cache: 'no-store' });
+                if (!res.ok) return;
                 const data = await res.json();
                 if (data.file_path) {
-                    el.innerHTML = `<a class="btn btn--ghost btn--sm" href="/api/report/download/${id}" download>Download</a>`;
+                    clearInterval(interval);
+                    // Update the row's status area
+                    const statusEl = document.querySelector(`.report-status[data-id="${reportId}"]`);
+                    if (statusEl) {
+                        statusEl.innerHTML = `<button class="btn btn--ghost btn--sm" onclick="openReportNatively('${reportId}')">Open File</button>`;
+                    }
+                    showToast('Report ready! Opening file…');
+                    // Auto-open the file on the host OS
+                    openReportNatively(reportId);
                 }
+            } catch (err) {
+                console.error("Poll failed:", err);
             }
-        });
+        }, 2000);
     }
-    setInterval(pollReports, 5000);
 
+    /* ── Also poll any existing "Generating…" rows on page load ─────────── */
+    document.querySelectorAll('.report-status').forEach(el => {
+        if (el.querySelector('span')) {
+            pollUntilReady(el.dataset.id);
+        }
+    });
+
+    /* ── Open file natively via OS ──────────────────────────────────────── */
+    async function openReportNatively(reportId) {
+        try {
+            const response = await fetch(`/api/report/open/${reportId}`, { method: 'POST' });
+            if (!response.ok) throw new Error('Could not open file');
+        } catch (err) {
+            showToast('Error: ' + err.message);
+        }
+    }
+
+    /* ── Toast helper (works inside iframe or parent) ───────────────────── */
+    function showToast(msg) {
+        if (window.irves?.showToast) {
+            window.irves.showToast(msg);
+        } else if (window.parent?.irves?.showToast) {
+            window.parent.irves.showToast(msg);
+        } else {
+            // Fallback: create inline toast
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#e0e0e0;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;border:1px solid rgba(255,255,255,0.08);';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+    }
+
+    /* ── Radio group interaction ─────────────────────────────────────────── */
     (function () {
         const radios = document.querySelectorAll('#report-template-group input[type="radio"]');
         radios.forEach(r => {
