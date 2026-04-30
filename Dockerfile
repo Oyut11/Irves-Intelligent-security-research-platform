@@ -1,14 +1,30 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
 # ║  IRVES — Dockerfile for containerized deployment                              ║
+# ║  Note: Runtime instrumentation (Frida, eBPF) requires host device access     ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
-FROM python:3.12-slim
+FROM python:3.12-bookworm
 
 # ── System dependencies ───────────────────────────────────────────────────────
+# Build tools for compiled Python packages + weasyprint GTK libs + curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    make \
     curl \
     unzip \
     openjdk-21-jdk \
+    libffi-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Install APKTool ────────────────────────────────────────────────────────────
@@ -26,11 +42,30 @@ RUN curl -fsSL https://github.com/skylot/jadx/releases/download/v1.5.5/jadx-1.5.
 
 # ── Set up Python environment ───────────────────────────────────────────────────
 WORKDIR /app/backend
+
+# Copy requirements and install core dependencies first
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install packages that work in containers. 
+# bcc requires kernel headers (host-specific) — skip in Docker.
+# frida-tools may fail on some architectures — tolerate failure.
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        fastapi uvicorn[standard] python-multipart jinja2 markdown \
+        sqlalchemy[asyncio] aiosqlite pydantic-settings python-dotenv \
+        httpx aiofiles anthropic litellm \
+        scikit-learn numpy \
+        frida frida-tools \
+        mitmproxy fritap \
+        weasyprint \
+        lizard radon pylint bandit safety trufflehog locust py-spy \
+        pytest pytest-asyncio \
+        google-generativeai google-cloud-aiplatform && \
+    echo "Core packages installed. Note: bcc (eBPF) is host-only and excluded."
 
 # ── Copy application ─────────────────────────────────────────────────────────────
 COPY backend/ .
+COPY docs/ /app/docs/
 
 # ── Create directories ─────────────────────────────────────────────────────────
 RUN mkdir -p /app/.irves/projects /app/.irves/reports
