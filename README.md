@@ -256,95 +256,12 @@ docker compose up -d
 docker build -t irves:latest .
 docker run -d -p 8765:8765 \
   -e SECRET_KEY=$(python backend/generate_secret.py) \
-  -e ANTHROPIC_API_KEY=your_key_here \
+  -e AI_API_KEY=your_key_here \
   -v irves-projects:/app/.irves/projects \
   -v irves-reports:/app/.irves/reports \
   irves:latest
 ```
 
-### Advanced Deployment
-
-For production deployments with SSL/TLS and process management, use nginx and systemd.
-
-**Nginx Reverse Proxy with SSL:**
-
-The provided `nginx.conf` includes:
-- HTTP to HTTPS redirect
-- Let's Encrypt SSL/TLS support
-- WebSocket support for network proxy
-- Security headers (HSTS, CSP, X-Frame-Options)
-- Rate limiting (30 req/s)
-- Large file upload support (500MB for APKs)
-
-**Setup:**
-
-```bash
-# Install nginx
-sudo apt install nginx certbot python3-certbot-nginx
-
-# Copy IRVES nginx config
-sudo cp nginx.conf /etc/nginx/sites-available/irves
-sudo ln -s /etc/nginx/sites-available/irves /etc/nginx/sites-enabled/
-
-# Edit the config and replace 'yourdomain.com' with your actual domain
-sudo nano /etc/nginx/sites-available/irves
-
-# Test configuration
-sudo nginx -t
-
-# Reload nginx
-sudo systemctl reload nginx
-
-# Obtain SSL certificate (Let's Encrypt)
-sudo certbot --nginx -d yourdomain.com
-
-# Auto-renewal is configured by certbot
-```
-
-**Systemd Service (Linux):**
-
-The provided `irves.service` includes:
-- Auto-restart on failure
-- Resource limits (4GB memory)
-- Security hardening (NoNewPrivileges, PrivateTmp)
-- Log integration with journald
-
-**Setup:**
-
-```bash
-# Create irves user (optional but recommended)
-sudo useradd -r -s /bin/false irves
-
-# Install IRVES to /opt/irves
-sudo mkdir -p /opt/irves
-sudo cp -r . /opt/irves/
-sudo chown -R irves:irves /opt/irves
-
-# Copy systemd service file
-sudo cp irves.service /etc/systemd/system/
-
-# Edit service file if needed (paths, user)
-sudo nano /etc/systemd/system/irves.service
-
-# Reload systemd and enable service
-sudo systemctl daemon-reload
-sudo systemctl enable irves
-sudo systemctl start irves
-
-# Check status
-sudo systemctl status irves
-```
-
-**Firewall:**
-
-```bash
-# Allow HTTP and HTTPS
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-```
-
----
 
 ## Screens & Workflows
 
