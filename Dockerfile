@@ -3,7 +3,7 @@
 # ║  Note: Runtime instrumentation (Frida, eBPF) requires host device access     ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
-FROM python:3.12-bookworm
+FROM python:3.14-bookworm
 
 # ── System dependencies ───────────────────────────────────────────────────────
 # Build tools for compiled Python packages + weasyprint GTK libs + curl for healthcheck
