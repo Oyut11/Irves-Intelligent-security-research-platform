@@ -1,0 +1,84 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          body: |
+            ## IRVES ${{ github.ref_name }}
+
+            ### Quick Start
+
+            **Docker (recommended for server deployment):**
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            # or latest
+            docker pull ghcr.io/${{ github.repository }}:main
+            ```
+
+            **Desktop builds:** Download the appropriate installer for your platform from the assets below.
+
+            **Source install:**
+            ```bash
+            git clone https://github.com/${{ github.repository }}.git
+            cd irves
+            bash install.sh
+            ```
+
+            ### What's Included
+
+            - **Docker image** — `ghcr.io/${{ github.repository }}` with all security tools pre-installed
+            - **Desktop builds** — Linux (.deb, .rpm, AppImage), macOS (x64, ARM64, Universal), Windows (x64, ARM64)
+            - **Source code** — Full Python backend + Tauri frontend
+
+            ### Documentation
+
+            - [Runtime Workspace Guide](docs/runtime-workspace.md)
+            - [Network Intercept Guide](docs/network-intercept.md)
+            - [Architecture Overview](docs/architecture.md)
+            - [API Documentation](docs/api.md)
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-readme-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update version badge in README
+        run: |
+          VERSION="${{ github.ref_name }}"
+          sed -i "s|badge/version-[a-zA-Z0-9._-]*-blue|badge/version-${VERSION}-blue|g" README.md || true
+
+      - name: Commit badge update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md || true
+          git diff --cached --quiet || git commit -m "docs: update version badge to ${{ github.ref_name }}"
+          git push origin HEAD:main || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
