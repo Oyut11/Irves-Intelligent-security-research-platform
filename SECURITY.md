@@ -16,7 +16,7 @@ If you discover a security vulnerability in IRVES, please report it responsibly.
 
 ### How to Report
 
-Send an email to: sorgilbat@gmail.com
+Send an email to: oyutunegen@gmail.com
 
 Include the following information:
 - Description of the vulnerability
