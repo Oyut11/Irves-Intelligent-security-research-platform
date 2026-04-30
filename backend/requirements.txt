@@ -36,7 +36,12 @@ frida==17.9.1
 frida-tools==14.8.1
 
 # ── eBPF / Kernel Monitoring ─────────────────────────────────────────────────
-bcc==0.29.0
+# NOTE: bcc is a system-level package requiring kernel headers.
+# Install via OS package manager instead of pip:
+#   Ubuntu/Debian: sudo apt-get install bpfcc-tools linux-headers-$(uname -r)
+#   Fedora/RHEL:   sudo dnf install bcc-tools kernel-devel
+#   Arch:          sudo pacman -S bcc
+# bcc is skipped in pip install — it has no Python 3.12+ wheels.
 
 # ── Network Proxy ─────────────────────────────────────────────────────────────
 mitmproxy>=12.0.0

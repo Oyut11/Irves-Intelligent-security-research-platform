@@ -140,6 +140,13 @@ info "Installing Python packages (Frida, mitmproxy, androguard, …)"
 "$PIP" install -q -r "$BACKEND_DIR/requirements.txt"
 ok "Python dependencies installed"
 
+# ── Optional: eBPF / kernel monitoring ─────────────────────────────────────────
+if [[ "$OS" == "debian" ]] && command -v apt-get &>/dev/null; then
+    info "Installing eBPF tools (optional — requires kernel headers)..."
+    sudo apt-get install -y -q bpfcc-tools linux-headers-$(uname -r) 2>/dev/null || \
+        warn "eBPF tools require matching kernel headers — skipping"
+fi
+
 # ══════════════════════════════════════════════════════════════════════════════
 step "[ 4 / 7 ]  APKTool $APKTOOL_VERSION"
 # ══════════════════════════════════════════════════════════════════════════════
