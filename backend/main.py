@@ -130,7 +130,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="IRVES",
     description="Intelligent Security Tool — API Core",
-    version="1.0.0-alpha",
+    version="1.0.0",
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url=None,
@@ -196,7 +196,7 @@ async def health_check():
     """Health check endpoint for monitoring."""
     return {
         "status": "healthy",
-        "version": "1.0.0-alpha",
+        "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat(),
     }
 
