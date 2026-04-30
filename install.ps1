@@ -201,7 +201,11 @@ $EnvExample  = Join-Path $BackendDir ".env.example"
 
 if (-not (Test-Path $EnvFile)) {
     Copy-Item $EnvExample $EnvFile
+    # Generate secure SECRET_KEY
+    $secretKey = -join ((1..64 | ForEach-Object { Get-Random -Maximum 16 }).ToString('x'))
+    (Get-Content $EnvFile) -replace 'SECRET_KEY=change-this-to-a-secure-random-string', "SECRET_KEY=$secretKey" | Set-Content $EnvFile
     Write-Ok "Created backend\.env from .env.example"
+    Write-Ok "Auto-generated SECRET_KEY"
     Write-Warn "Open backend\.env and set at least one AI API key (e.g. ANTHROPIC_API_KEY)"
 } else {
     Write-Ok "backend\.env already exists — skipping"

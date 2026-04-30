@@ -123,6 +123,11 @@ The installer handles everything:
 ```bash
 git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
 cd Irves-Intelligent-security-research-platform/backend
+
+# Create environment config and generate SECRET_KEY (required for startup)
+cp .env.example .env
+python generate_secret.py  # Copy output into .env as SECRET_KEY=...
+
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

@@ -200,7 +200,11 @@ step "[ 7 / 7 ]  Environment configuration"
 ENV_FILE="$BACKEND_DIR/.env"
 if [[ ! -f "$ENV_FILE" ]]; then
     cp "$BACKEND_DIR/.env.example" "$ENV_FILE"
+    # Generate a secure SECRET_KEY
+    SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null || openssl rand -hex 32)
+    sed -i "s|SECRET_KEY=change-this-to-a-secure-random-string|SECRET_KEY=$SECRET_KEY|" "$ENV_FILE"
     ok "Created backend/.env from .env.example"
+    ok "Auto-generated SECRET_KEY"
     warn "Open backend/.env and set at least one AI API key (e.g. ANTHROPIC_API_KEY)"
 else
     ok "backend/.env already exists — skipping"
