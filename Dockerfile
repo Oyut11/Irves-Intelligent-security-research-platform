@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     curl \
     unzip \
-    openjdk-21-jdk \
+    default-jdk \
     libffi-dev \
     libssl-dev \
     zlib1g-dev \
