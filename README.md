@@ -148,10 +148,10 @@ The fastest way to run IRVES without installing dependencies locally:
 ```bash
 docker pull ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 
-# Run directly
+# Run directly (replace AI_API_KEY with your provider's key)
 docker run -d -p 8765:8765 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
-  -e ANTHROPIC_API_KEY=your_key \
+  -e AI_API_KEY=your_key_here \
   ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 ```
 
@@ -178,14 +178,14 @@ cp backend/.env.example backend/.env
 
 | Variable | Description |
 |---|---|
-| `SECRET_KEY` | Secure random string for session encryption |
+| `SECRET_KEY` | Required. Secure random string for OAuth session encryption. Generate with: `python backend/generate_secret.py` |
 
 **Recommended:**
 
 | Variable | Description |
 |---|---|
-| `ANTHROPIC_API_KEY` | API key for the default AI provider |
-| `AI_MODEL` | LLM model identifier (e.g., `claude-sonnet-4-6`) |
+| `AI_API_KEY` | Generic API key for any supported AI provider |
+| `AI_MODEL` | Provider/model format (e.g. `anthropic/claude-3-5-sonnet`, `openai/gpt-4o`, `ollama/llama3`) |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 

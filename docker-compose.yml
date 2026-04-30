@@ -19,10 +19,11 @@ services:
       # Database (use PostgreSQL for production)
       - DATABASE_URL=postgresql+asyncpg://irves:${POSTGRES_PASSWORD:-irves_secure_pass}@postgres:5432/irves
       
-      # AI Provider (set at least one)
+      # AI Provider (set at least one in .env — any supported provider works)
+      - AI_API_KEY=${AI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_MODEL=${AI_MODEL:-anthropic/claude-3-5-sonnet-20240620}
+      - AI_MODEL=${AI_MODEL:-}
       
       # Server
       - SECRET_KEY=${SECRET_KEY:-}
