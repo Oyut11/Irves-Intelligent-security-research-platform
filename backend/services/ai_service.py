@@ -28,6 +28,7 @@ from services.ai.knowledge import (
     initialize_response_templates,
     initialize_semantic_analysis,
 )
+from services.ai.log_analyzer import analyze_logs_for_thinking, build_thinking_context
 from services.ai.intent import (
     detect_intent,
     detect_platform_context,
@@ -84,6 +85,8 @@ class AIService:
         self._semantic_data = initialize_semantic_analysis(self.domain_knowledge)
         # Real-time error buffer: keyed by session_id, stores recent errors
         self._rt_error_buffer: Dict[str, List[dict]] = defaultdict(list)
+        # Real-time log buffer: keyed by session_id, stores recent output lines
+        self._rt_log_buffer: Dict[str, List[str]] = defaultdict(list)
 
     # ── Error Buffer (delegated) ──────────────────────────────────────────────
 
@@ -92,6 +95,25 @@ class AIService:
 
     def get_runtime_errors(self, session_key: str):
         return get_runtime_errors(self._rt_error_buffer, session_key)
+
+    def update_script_outcome(self, user_id: str, session_id: str, outcome: str, error: str = ""):
+        """Update the most recent script injection outcome for a user/session."""
+        ctx = self.conversation_memory.get_context(user_id, session_id)
+        ctx.update_last_script_outcome(outcome, error)
+
+    # ── Log Buffer ────────────────────────────────────────────────────────────
+
+    def record_runtime_log(self, session_key: str, line: str, max_lines: int = 100):
+        """Store a live log line for a session. Keeps last N lines."""
+        buf = self._rt_log_buffer[session_key]
+        buf.append(line)
+        if len(buf) > max_lines:
+            self._rt_log_buffer[session_key] = buf[-max_lines:]
+
+    def get_runtime_logs(self, session_key: str, limit: int = 50) -> str:
+        """Retrieve recent live log lines for a session as a single string."""
+        lines = self._rt_log_buffer.get(session_key, [])
+        return "\n".join(lines[-limit:])
 
     # ── Real-time AI Pivot ───────────────────────────────────────────────────
 
@@ -108,6 +130,13 @@ class AIService:
         """Generate immediate AI pivot response when a runtime error occurs."""
         self.conversation_memory.update_user_context(user_id, f"[Runtime error: {error_msg[:100]}]", session_id)
 
+        # ── THINKING PHASE for realtime pivot ──
+        thinking_analysis = analyze_logs_for_thinking(
+            logs=error_msg,
+            script_history=session_history,
+        )
+        thinking_context = build_thinking_context(thinking_analysis)
+
         system_prompt = (
             f"{FRIDA_SYSTEM_PROMPT}\n\n"
             "## PIVOT MODE — Script Delivery Required\n"
@@ -119,6 +148,8 @@ class AIService:
         )
 
         user_prompt = f"**Package:** {package}\n**Error:** {error_msg}\n"
+        if thinking_context:
+            user_prompt += f"\n{thinking_context}\n"
         if script_context:
             user_prompt += f"**Failed script:**\n```javascript\n{script_context}\n```\n"
         if session_history:
@@ -209,7 +240,7 @@ class AIService:
         ):
             yield chunk
 
-    async def stream_frida_chat(self, question: str, script_context: str, logs: str, finding_context: Optional[dict] = None, runtime_state: Optional[dict] = None, user_id: str = "default", session_id: str = "frida_runtime") -> AsyncIterator[str]:
+    async def stream_frida_chat(self, question: str, script_context: str, logs: str, finding_context: Optional[dict] = None, runtime_state: Optional[dict] = None, user_id: str = "default", session_id: str = "frida_runtime", rt_log_buffer: Optional[List[str]] = None) -> AsyncIterator[str]:
         async for chunk in stream_frida_chat(
             question, script_context, logs, finding_context, runtime_state, user_id, session_id,
             conversation_memory=self.conversation_memory,
@@ -217,6 +248,7 @@ class AIService:
             response_templates=self.response_templates,
             semantic_data=self._semantic_data,
             rt_error_buffer=self._rt_error_buffer,
+            rt_log_buffer=rt_log_buffer,
         ):
             yield chunk
 

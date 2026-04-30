@@ -86,7 +86,13 @@
             saveHookBtn?.addEventListener('click', saveCurrentHook);
             guidedHooksBtn?.addEventListener('click', showGuidedHooks);
             continueRuntimeBtn?.addEventListener('click', startRuntimeSession);
-            document.getElementById('connect-session-btn')?.addEventListener('click', startRuntimeSession);
+            document.getElementById('connect-session-btn')?.addEventListener('click', () => {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    disconnectSession();
+                } else {
+                    startRuntimeSession();
+                }
+            });
 
             // App Selector logic — keep process-label in sync for any legacy reads
             const appSelector = document.getElementById('app-selector');
@@ -657,13 +663,13 @@
                 _syncRuntimeState();
                     if (eng === 'xposed') {
                         // Xposed: WS is open, logcat stream starts automatically on server side
-                        if (connectBtn) { connectBtn.textContent = '● Streaming'; connectBtn.style.opacity = '0.7'; connectBtn.disabled = true; }
+                        if (connectBtn) { connectBtn.textContent = '✕ Disconnect'; connectBtn.style.opacity = '1'; connectBtn.disabled = false; }
                         // Show TrustMeAlready hooks as always-active
                         addActiveHook('logcat', 'TrustMeAlready (SSL Bypass)');
                     } else {
                         // Frida: open → send attach command
                         addOutput('✓ Session connected. Attaching to process…', 'success');
-                        if (connectBtn) { connectBtn.textContent = '● Connected'; connectBtn.style.opacity = '0.7'; connectBtn.disabled = true; }
+                        if (connectBtn) { connectBtn.textContent = '✕ Disconnect'; connectBtn.style.opacity = '1'; connectBtn.disabled = false; }
                         websocket.send(JSON.stringify({ type: 'attach' }));
                     }
                 };
