@@ -441,6 +441,16 @@ async def runtime_chat(
     # Update user context for Frida-specific expertise detection
     ai_service.conversation_memory.update_user_context(user_id, payload.message, session_id)
 
+    # Merge live WebSocket buffer logs with the HTTP payload snapshot
+    # Buffer always has the most recent lines since WebSocket pushes continuously
+    buffer_logs = ai_service.get_runtime_logs(session_id, limit=50)
+    merged_logs = payload.logs or ""
+    if buffer_logs:
+        if merged_logs:
+            merged_logs = f"{merged_logs}\n--- LIVE LOGS (since last snapshot) ---\n{buffer_logs}"
+        else:
+            merged_logs = buffer_logs
+
     async def event_gen():
         try:
             # Send user context metadata
@@ -450,11 +460,12 @@ async def runtime_chat(
             async for chunk in ai_service.stream_frida_chat(
                 question=payload.message,
                 script_context=payload.script_context,
-                logs=payload.logs,
+                logs=merged_logs,
                 finding_context=finding_context,
                 runtime_state=payload.runtime_state,
                 user_id=user_id,
                 session_id=session_id,
+                rt_log_buffer=ai_service._rt_log_buffer.get(session_id, []),
             ):
                 yield f"data: {json.dumps({'token': chunk})}\n\n"
         except Exception as e:

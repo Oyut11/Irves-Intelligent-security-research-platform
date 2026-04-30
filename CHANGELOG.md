@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed MobSF dependencies and API endpoints
 - Added security policy documentation (SECURITY.md)
 
-## [1.0.0] - 2026-04-28
+## [1.0.0-alpha] - 2026-04-30
 
 ### Added
 - Initial public release of IRVES

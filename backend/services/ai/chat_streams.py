@@ -39,6 +39,8 @@ from services.ai.llm import (
     resolve_api_base,
     stream_llm,
 )
+from services.ai.log_analyzer import analyze_logs_for_thinking, build_thinking_context
+from services.ai.rag import build_rag_context
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +321,7 @@ async def stream_frida_chat(
     response_templates: Dict[str, str],
     semantic_data: Dict[str, Any],
     rt_error_buffer: Dict[str, List[dict]],
+    rt_log_buffer: Optional[List[str]] = None,
 ) -> AsyncIterator[str]:
     """Stream Frida chat with full context awareness, conversation memory, and adaptive prompts."""
     conversation_memory.update_user_context(user_id, question, session_id)
@@ -333,13 +336,22 @@ async def stream_frida_chat(
         user_intent == "casual_conversation"
         or _is_casual_message(question)
     )
+    # Override casual when on frida_runtime screen with actual logs or errors
+    # The user is asking about live output / errors — AI must analyze, not greet
+    if is_casual and (logs or script_context or runtime_state):
+        intent_data["primary_intent"] = "problem_solving"
+        user_intent = "problem_solving"
+        is_casual = False
 
-    # Detect actual Frida script errors in logs — but only surface them if user wants technical help
-    has_errors = not is_casual and logs and any(keyword in logs for keyword in [
-        "SyntaxError", "TypeError", "ReferenceError", "Java Bridge failed",
-        "java.lang.", "Traceback", "Segmentation fault",
-        "Script destroyed", "Process crashed", "FATAL EXCEPTION",
-    ])
+    # ── THINKING PHASE: Analyze logs BEFORE AI generates any script ──
+    thinking_analysis = analyze_logs_for_thinking(
+        logs=logs,
+        script_history=conv_context.get_script_history_summary(),
+        active_hooks=runtime_state.get('active_hooks') if runtime_state else None,
+        rt_errors=get_runtime_errors(rt_error_buffer, session_id) if not is_casual else None,
+    )
+    thinking_context = build_thinking_context(thinking_analysis)
+    has_errors = bool(thinking_analysis["categories"])
 
     detect_platform_context(question, conv_context, **_semantic_kwargs(semantic_data))
     system_prompt = build_adaptive_system_prompt(intent_data, conv_context, screen="frida_runtime")
@@ -426,29 +438,23 @@ async def stream_frida_chat(
         context_parts.append(f"Current Frida script:\n```javascript\n{script_context}\n```")
     if logs:
         if is_casual:
-            # In casual mode: logs are background context only, not a crisis to solve
             context_parts.append(f"[Background session logs — user is chatting casually, do NOT treat these as errors to fix]\n```\n{logs[:800]}\n```")
         else:
             context_parts.append(f"Recent logs:\n```\n{logs[:2000]}\n```")
-            if has_errors:
-                context_parts.append("\n⚠️ **SCRIPT FAILURE DETECTED**\n\nThe logs show a Frida script failure. You MUST:")
-                context_parts.append("1. Analyze the exact error message and root cause")
-                context_parts.append("2. Identify WHY the current approach failed")
-                context_parts.append("3. Propose a DIFFERENT strategy or FIXED script")
-                context_parts.append("4. Explain the pivot: 'I'm switching from [old approach] to [new approach] because...'")
-                context_parts.append("\nDo NOT suggest the same failed approach again.")
 
-    # Check the real-time error buffer — only surface if user is seeking technical help
-    session_key = session_id
-    rt_errors = get_runtime_errors(rt_error_buffer, session_key)
-    if rt_errors and not is_casual:
-        has_errors = True
-        context_parts.append(f"\n⚡ **LIVE RUNTIME ERRORS** ({len(rt_errors)} captured in real-time):")
-        for rte in rt_errors[-5:]:
-            context_parts.append(f"- [{rte['timestamp']}] {rte['error']}")
-            if rte.get('stack'):
-                context_parts.append(f"  Stack: {rte['stack'][:300]}")
-        context_parts.append("\nThese errors were captured LIVE from the Frida session. Pivot your strategy immediately.")
+    # ── Insert structured thinking context BEFORE the AI generates response ──
+    if not is_casual and thinking_context:
+        context_parts.append(thinking_context)
+
+    # ── RAG: Retrieve relevant knowledge for the query ──
+    if not is_casual:
+        rag_context = build_rag_context(
+            query=question,
+            logs=logs,
+            finding_context=finding_context,
+            max_results=3,
+        )
+        context_parts.append(rag_context)
 
     # Add script injection history to prevent repeating failed approaches
     context_parts.append(conv_context.get_script_history_summary())

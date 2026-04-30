@@ -77,6 +77,14 @@ class ConversationContext:
         for inj in self.script_injections[-5:]:
             lines.append(f"- [{inj['outcome']}] {inj['type']} | Error: {inj.get('error') or 'none'}")
         return "\n".join(lines)
+
+    def update_last_script_outcome(self, outcome: str, error: str = ""):
+        """Update the most recent script injection outcome (called from WebSocket handlers on success/failure)."""
+        if not self.script_injections:
+            return
+        self.script_injections[-1]["outcome"] = outcome
+        if error:
+            self.script_injections[-1]["error"] = error[:200]
     
     def _detect_expertise_from_message(self, message: str):
         """Detect and update user expertise level based on message content."""

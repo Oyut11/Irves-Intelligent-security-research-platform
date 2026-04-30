@@ -436,6 +436,8 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
             payload = message.get("payload", "")
             out_type = "error" if level == "error" else "warn" if level == "warning" else "output"
             session_history_log.append({"event": out_type, "detail": str(payload)[:500], "timestamp": datetime.utcnow().isoformat()})
+            # ── Push live output to AI log buffer ──
+            ai_service.record_runtime_log("frida_runtime", f"[{out_type}] {payload}")
             asyncio.run_coroutine_threadsafe(
                 send_msg({"type": out_type, "payload": payload}), loop
             )
@@ -458,6 +460,8 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
             if stack:
                 err += f"\n{stack}"
             session_history_log.append({"event": "error", "detail": err[:500], "timestamp": datetime.utcnow().isoformat()})
+            # ── Push live error to AI log buffer ──
+            ai_service.record_runtime_log("frida_runtime", f"[error] {err}")
             logger.warning(f"[FRIDA-ERROR] {err[:200]}")
             asyncio.run_coroutine_threadsafe(
                 send_msg({"type": "error", "payload": err}), loop
@@ -472,6 +476,8 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
         else:
             if "payload" in message:
                 session_history_log.append({"event": "output", "detail": str(message["payload"])[:500], "timestamp": datetime.utcnow().isoformat()})
+                # ── Push live output to AI log buffer ──
+                ai_service.record_runtime_log("frida_runtime", f"[output] {message['payload']}")
                 asyncio.run_coroutine_threadsafe(
                     send_msg({"type": "output", "payload": str(message["payload"])}), loop
                 )
@@ -494,8 +500,10 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
                     await send_msg({"type": "attached", "session_id": session_id})
                 except Exception as e:
                     logger.error(f"[Runtime WS] attach failed: {e}")
+                    err_msg = f"Attach failed: {e}"
                     session_history_log.append({"event": "error", "detail": f"attach failed: {e}", "timestamp": datetime.utcnow().isoformat()})
-                    await send_msg({"type": "error", "payload": f"Attach failed: {e}"})
+                    ai_service.record_runtime_log("frida_runtime", f"[error] {err_msg}")
+                    await send_msg({"type": "error", "payload": err_msg})
 
             elif msg_type == "spawn":
                 try:
@@ -504,8 +512,10 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
                     await send_msg({"type": "attached", "session_id": session_id, "mode": "spawned"})
                 except Exception as e:
                     logger.error(f"[Runtime WS] spawn failed: {e}")
+                    err_msg = f"Spawn failed: {e}"
                     session_history_log.append({"event": "error", "detail": f"spawn failed: {e}", "timestamp": datetime.utcnow().isoformat()})
-                    await send_msg({"type": "error", "payload": f"Spawn failed: {e}"})
+                    ai_service.record_runtime_log("frida_runtime", f"[error] {err_msg}")
+                    await send_msg({"type": "error", "payload": err_msg})
 
             elif msg_type == "inject":
                 if not session_id:
@@ -525,12 +535,17 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
                     script_id = await frida_service.inject_script(session_id, script_code, frida_message_handler)
                     logger.warning(f"[INJECT] Success: {script_id}")
                     session_history_log.append({"event": "inject", "detail": hook_name or f"custom ({len(script_code)} chars)", "timestamp": datetime.utcnow().isoformat()})
+                    # Mark last suggested script as successfully injected
+                    ai_service.update_script_outcome("default", "frida_runtime", "success")
                     await send_msg({"type": "injected", "script_id": script_id, "hook": hook_name or "custom"})
                 except Exception as e:
                     logger.error(f"[Runtime WS] inject failed: {e}")
                     err_msg = f"Inject failed: {e}"
                     logger.warning(f"[INJECT-FAIL] Error: {err_msg[:100]}")
                     session_history_log.append({"event": "error", "detail": err_msg[:500], "timestamp": datetime.utcnow().isoformat()})
+                    ai_service.record_runtime_log("frida_runtime", f"[error] {err_msg}")
+                    # Mark last suggested script as failed so AI knows not to repeat it
+                    ai_service.update_script_outcome("default", "frida_runtime", "failed", error=err_msg)
                     await send_msg({"type": "error", "payload": err_msg})
                     # ── AUTO-PIVOT on injection failure — fire as background task ──
                     logger.warning(f"[INJECT-FAIL] Recording error & scheduling AI pivot")
@@ -565,6 +580,8 @@ async def runtime_websocket(websocket: WebSocket, device_id: str, package: str):
         if session_id:
             await frida_service.detach(session_id)
             await send_msg({"type": "detached"})
+        # Clear AI log buffer so stale logs don't carry over to new sessions
+        ai_service._rt_log_buffer.pop("frida_runtime", None)
 
 
 # ── Elite Runtime Routes (Zymbiote + eBPF + MTE) ──────────────────────────
