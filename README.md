@@ -150,6 +150,7 @@ docker pull ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 
 # Run directly (configure AI provider in Settings after launch)
 docker run -d -p 8765:8765 \
+  -e HOST=0.0.0.0 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
   ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 ```
@@ -254,6 +255,7 @@ docker compose up -d
 ```bash
 docker build -t irves:latest .
 docker run -d -p 8765:8765 \
+  -e HOST=0.0.0.0 \
   -e SECRET_KEY=$(python backend/generate_secret.py) \
   -v irves-projects:/app/.irves/projects \
   -v irves-reports:/app/.irves/reports \

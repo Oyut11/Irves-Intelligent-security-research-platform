@@ -76,6 +76,7 @@ ENV APKTOOL_PATH=apktool
 ENV JADX_PATH=jadx
 ENV FRIDA_PATH=frida
 ENV MITMPROXY_PATH=mitmproxy
+ENV HOST=0.0.0.0
 ENV PROJECTS_DIR=/app/.irves/projects
 ENV REPORTS_DIR=/app/.irves/reports
 
