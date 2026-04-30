@@ -87,10 +87,10 @@ Whether you are performing a penetration test on an Android APK, auditing a Git 
 | Python | 3.12+ | Core backend runtime |
 | Rust | Latest stable (via `rustup`) | Required for Tauri desktop shell |
 | Node.js | 20+ | Tauri CLI and build toolchain |
-| Frida | 16+ | *Optional* — required for runtime instrumentation |
-| mitmproxy | 10+ | *Optional* — required for network interception |
-| APKTool | 2.9+ | *Optional* — required for APK decompilation |
-| JADX | 1.5+ | *Optional* — required for DEX-to-Java decompilation |
+| Frida | 16+ | *Included* — bundled with IRVES for runtime instrumentation |
+| mitmproxy | 10+ | *Included* — bundled with IRVES for network interception |
+| APKTool | 2.9+ | *Included* — bundled with IRVES for APK decompilation |
+| JADX | 1.5+ | *Included* — bundled with IRVES for DEX-to-Java decompilation |
 
 ### Installation
 
