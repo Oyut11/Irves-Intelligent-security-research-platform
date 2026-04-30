@@ -97,7 +97,7 @@ Whether you are performing a penetration test on an Android APK, auditing a Git 
 **One-command install (Linux / macOS):**
 
 ```bash
-git clone https://github.com/your-org/irves.git
+git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
 cd irves
 bash install.sh
 ```
@@ -105,7 +105,7 @@ bash install.sh
 **One-command install (Windows — PowerShell as Administrator):**
 
 ```powershell
-git clone https://github.com/your-org/irves.git
+git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
 cd irves
 Set-ExecutionPolicy -Scope Process Bypass; .\install.ps1
 ```
@@ -121,7 +121,7 @@ The installer handles everything:
 **Manual installation (if you prefer):**
 
 ```bash
-git clone https://github.com/your-org/irves.git
+git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
 cd irves/backend
 python3 -m venv .venv
 source .venv/bin/activate
@@ -130,6 +130,31 @@ python setup_tools.py  # APKTool + JADX
 source ~/.bashrc
 cd .. && npm install  # Only needed for Tauri desktop shell
 ```
+
+### Quick Start (Docker)
+
+The fastest way to run IRVES without installing dependencies locally:
+
+```bash
+docker pull ghcr.io/oyut11/irves-Intelligent-security-research-platform:main
+
+# Run directly
+docker run -d -p 8765:8765 \
+  -e SECRET_KEY=$(openssl rand -hex 32) \
+  -e ANTHROPIC_API_KEY=your_key \
+  ghcr.io/oyut11/irves-Intelligent-security-research-platform:main
+```
+
+Or use Docker Compose:
+
+```bash
+git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
+cd irves
+cp .env.docker.example .env
+docker compose up -d
+```
+
+→ http://localhost:8765
 
 ### Configuration
 
