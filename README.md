@@ -136,13 +136,13 @@ cd .. && npm install  # Only needed for Tauri desktop shell
 The fastest way to run IRVES without installing dependencies locally:
 
 ```bash
-docker pull ghcr.io/oyut11/irves-Intelligent-security-research-platform:main
+docker pull ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 
 # Run directly
 docker run -d -p 8765:8765 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
   -e ANTHROPIC_API_KEY=your_key \
-  ghcr.io/oyut11/irves-Intelligent-security-research-platform:main
+  ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 ```
 
 Or use Docker Compose:
