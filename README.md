@@ -98,7 +98,7 @@ Whether you are performing a penetration test on an Android APK, auditing a Git 
 
 ```bash
 git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
-cd irves
+cd Irves-Intelligent-security-research-platform
 bash install.sh
 ```
 
@@ -106,7 +106,7 @@ bash install.sh
 
 ```powershell
 git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
-cd irves
+cd Irves-Intelligent-security-research-platform
 Set-ExecutionPolicy -Scope Process Bypass; .\install.ps1
 ```
 
@@ -118,17 +118,27 @@ The installer handles everything:
 - ✅ JADX 1.5.5
 - ✅ PATH configuration
 
-**Manual installation (if you prefer):**
+**Manual installation — Backend (web server):**
 
 ```bash
 git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
-cd irves/backend
+cd Irves-Intelligent-security-research-platform/backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python setup_tools.py  # APKTool + JADX
+python setup_tools.py  # Installs APKTool + JADX
 source ~/.bashrc
-cd .. && npm install  # Only needed for Tauri desktop shell
+cd .. && python backend/main.py
+```
+
+**Manual installation — Desktop app (optional):**
+
+If you want the native desktop shell (Tauri) instead of using a browser:
+
+```bash
+cd Irves-Intelligent-security-research-platform
+npm install           # Tauri build toolchain
+npm run build         # Compile desktop installer
 ```
 
 ### Quick Start (Docker)
@@ -149,7 +159,7 @@ Or use Docker Compose:
 
 ```bash
 git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
-cd irves
+cd Irves-Intelligent-security-research-platform
 cp .env.docker.example .env
 docker compose up -d
 ```
@@ -180,7 +190,7 @@ cp backend/.env.example backend/.env
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret |
 
 > [!TIP]
-> IRVES supports hot-switching AI providers at runtime via the Settings screen. You can configure API keys for Anthropic, OpenAI, Gemini, xAI, DeepSeek, Together AI, HuggingFace, or point to a local Ollama instance — all without restarting the application.
+> IRVES supports hot-switching AI providers at runtime via th\e Settings screen. You can configure API keys for Anthropic, OpenAI, Gemini, xAI, DeepSeek, Together AI, HuggingFace, or point to a local Ollama instance — all without restarting the application.
 
 ### Running
 
@@ -213,8 +223,8 @@ IRVES can be deployed using Docker for a consistent, containerized environment.
 
 ```bash
 # Clone and navigate
-git clone https://github.com/your-org/irves.git
-cd irves
+git clone https://github.com/Oyut11/Irves-Intelligent-security-research-platform.git
+cd Irves-Intelligent-security-research-platform
 
 # Configure environment
 cp .env.docker.example .env
