@@ -56,7 +56,7 @@ PKG_CATEGORY_DB: Dict[str, str] = {
     # Security tools
     "frida": "Security Tools", "frida-tools": "Security Tools",
     "mitmproxy": "Security Tools", "bcc": "Security Tools", "fritap": "Security Tools",
-    "trufflehog": "Security Tools", "weasyprint": "Document Processing",
+    "trufflehog3": "Security Tools", "weasyprint": "Document Processing",
 }
 
 PKG_SECURITY_DB: Dict[str, Dict[str, str]] = {
@@ -73,7 +73,7 @@ PKG_SECURITY_DB: Dict[str, Dict[str, str]] = {
     "bcc": {"notes": "Requires root privileges", "risk": "high"},
     "fritap": {"notes": "Sensitive key extraction capability", "risk": "high"},
     "bandit": {"notes": "May have false positives", "risk": "low"},
-    "trufflehog": {"notes": "Scans for secrets in repos", "risk": "medium"},
+    "trufflehog3": {"notes": "Scans for secrets in repos", "risk": "medium"},
     "safety": {"notes": "Checks dependency CVEs", "risk": "low"},
     "weasyprint": {"notes": "HTML/CSS parsing, potential XSS", "risk": "medium"},
     "google-generativeai": {"notes": "API key exposure risk", "risk": "high"},
