@@ -1,7 +1,7 @@
 
 IRVES
 
-Intelligent Reverse-engineering & Vulnerability Evaluation System
+Irves: Intelligent Security Research Platform
 
 *A desktop-native security analysis platform that unifies static analysis, dynamic instrumentation,*
 *network interception, and AI-powered reasoning into a single, coherent interface — aligned with*
