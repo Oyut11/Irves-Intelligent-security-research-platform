@@ -148,10 +148,9 @@ The fastest way to run IRVES without installing dependencies locally:
 ```bash
 docker pull ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 
-# Run directly (replace AI_API_KEY with your provider's key)
+# Run directly (configure AI provider in Settings after launch)
 docker run -d -p 8765:8765 \
   -e SECRET_KEY=$(openssl rand -hex 32) \
-  -e AI_API_KEY=your_key_here \
   ghcr.io/oyut11/irves-intelligent-security-research-platform:main
 ```
 
@@ -256,7 +255,6 @@ docker compose up -d
 docker build -t irves:latest .
 docker run -d -p 8765:8765 \
   -e SECRET_KEY=$(python backend/generate_secret.py) \
-  -e AI_API_KEY=your_key_here \
   -v irves-projects:/app/.irves/projects \
   -v irves-reports:/app/.irves/reports \
   irves:latest
